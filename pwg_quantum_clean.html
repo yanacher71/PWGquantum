@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PWG Quantum | Cryogenic Interconnects</title>
+  <meta name="description" content="Cryogenic cable platforms and interconnect solutions for superconducting quantum systems." />
+  <style>
+    :root{
+      --ink:#10233d;
+      --text:#27364a;
+      --muted:#66758a;
+      --line:#dfe6ee;
+      --soft:#f5f8fb;
+      --blue:#1c5d99;
+      --blue2:#eaf2f9;
+      --white:#ffffff;
+      --max:1160px;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      color:var(--text);
+      background:var(--white);
+      line-height:1.55;
+    }
+    a{color:inherit;text-decoration:none}
+    .wrap{max-width:var(--max);margin:0 auto;padding:0 28px}
+    nav{
+      position:sticky;top:0;z-index:30;
+      background:rgba(255,255,255,.94);
+      backdrop-filter:blur(12px);
+      border-bottom:1px solid var(--line);
+    }
+    .nav-inner{
+      height:70px;display:flex;align-items:center;justify-content:space-between;gap:24px;
+    }
+    .brand{font-weight:800;letter-spacing:.08em;color:var(--ink)}
+    .brand span{color:var(--blue)}
+    .nav-links{display:flex;align-items:center;gap:24px;font-size:14px;color:var(--muted)}
+    .nav-links a:hover{color:var(--ink)}
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;
+      padding:12px 17px;border-radius:8px;
+      border:1px solid var(--line);
+      font-size:14px;font-weight:700;
+      transition:.18s ease;
+      background:var(--white);
+    }
+    .btn:hover{transform:translateY(-1px);border-color:#b9c8d7}
+    .btn.primary{background:var(--ink);color:white;border-color:var(--ink)}
+    .btn.link{border:none;padding-left:0;padding-right:0;color:var(--blue);background:transparent}
+    .hero{padding:96px 0 78px;border-bottom:1px solid var(--line)}
+    .hero-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:60px;align-items:end}
+    .eyebrow{
+      font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;
+      color:var(--blue);margin-bottom:16px;
+    }
+    h1{
+      margin:0;color:var(--ink);
+      font-size:clamp(46px,6.5vw,78px);
+      line-height:1.02;letter-spacing:-.045em;
+      max-width:860px;
+    }
+    .hero p{
+      margin:26px 0 28px;
+      max-width:760px;
+      color:var(--muted);
+      font-size:19px;
+    }
+    .actions{display:flex;gap:12px;flex-wrap:wrap}
+    .hero-note{
+      padding:22px 0 4px;
+      border-top:1px solid var(--line);
+      color:var(--muted);
+      font-size:14px;
+    }
+    .hero-note strong{display:block;color:var(--ink);margin-bottom:5px}
+    section{padding:82px 0;border-bottom:1px solid var(--line)}
+    .section-head{
+      display:grid;grid-template-columns:.8fr 1.2fr;gap:50px;
+      margin-bottom:38px;
+    }
+    h2{
+      margin:0;color:var(--ink);
+      font-size:clamp(32px,4vw,48px);
+      line-height:1.08;letter-spacing:-.035em;
+    }
+    .section-head p{margin:0;color:var(--muted);font-size:17px;max-width:680px}
+    .product-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+    .product{
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:26px;
+      background:var(--white);
+    }
+    .product:hover{border-color:#b7c7d7}
+    .status{
+      display:inline-block;
+      font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;
+      color:var(--blue);background:var(--blue2);
+      border-radius:999px;padding:6px 9px;margin-bottom:20px;
+    }
+    .product h3{margin:0 0 8px;color:var(--ink);font-size:24px}
+    .product p{margin:0 0 22px;color:var(--muted)}
+    .specs{border-top:1px solid var(--line);padding-top:16px}
+    .spec-row{
+      display:grid;grid-template-columns:110px 1fr;gap:10px;
+      padding:7px 0;font-size:13px;
+    }
+    .spec-row span:first-child{color:var(--muted)}
+    .spec-row span:last-child{color:var(--ink);font-weight:600}
+    .config{
+      margin-top:24px;
+      display:grid;grid-template-columns:repeat(4,1fr);
+      border:1px solid var(--line);border-radius:12px;overflow:hidden;
+    }
+    .config div{padding:18px 20px;border-right:1px solid var(--line)}
+    .config div:last-child{border-right:none}
+    .config small{display:block;color:var(--muted);margin-bottom:5px}
+    .config strong{color:var(--ink);font-size:14px}
+    .applications{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+    .application{
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:22px 24px;
+      background:var(--soft);
+    }
+    .application strong{display:block;color:var(--ink);margin-bottom:4px}
+    .application span{color:var(--muted);font-size:14px}
+    .mission{
+      display:grid;grid-template-columns:.8fr 1.2fr;gap:50px;align-items:start;
+    }
+    .mission-copy{font-size:23px;color:var(--ink);line-height:1.45;margin-top:0}
+    .mission-note{color:var(--muted);max-width:700px}
+    .contact{
+      background:var(--ink);color:white;
+    }
+    .contact .eyebrow{color:#9ec4e8}
+    .contact h2{color:white}
+    .contact p{color:#c3cfdb;margin:10px 0 0}
+    .contact-box{
+      display:flex;align-items:center;justify-content:space-between;gap:30px;
+    }
+    .contact .btn.primary{background:white;color:var(--ink);border-color:white}
+    .portal{
+      background:var(--soft);
+      padding:44px 0;
+    }
+    .portal-row{display:flex;justify-content:space-between;align-items:center;gap:24px}
+    .portal h3{margin:0;color:var(--ink);font-size:20px}
+    .portal p{margin:4px 0 0;color:var(--muted);font-size:14px}
+    footer{padding:30px 0;color:#7a8999;font-size:13px}
+    .footer-row{display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap}
+    @media(max-width:900px){
+      .hero-grid,.section-head,.mission{grid-template-columns:1fr}
+      .product-grid{grid-template-columns:1fr}
+      .config{grid-template-columns:1fr 1fr}
+      .config div:nth-child(2){border-right:none}
+      .config div{border-bottom:1px solid var(--line)}
+      .applications{grid-template-columns:1fr}
+      .nav-links a:not(.btn){display:none}
+      .contact-box,.portal-row{display:block}
+      .contact .actions,.portal .actions{margin-top:20px}
+    }
+    @media(max-width:560px){
+      .wrap{padding:0 20px}
+      .config{grid-template-columns:1fr}
+      .config div{border-right:none}
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap nav-inner">
+    <a href="#" class="brand">PWG <span>QUANTUM</span></a>
+    <div class="nav-links">
+      <a href="#products">Products</a>
+      <a href="#applications">Applications</a>
+      <a href="#mission">Mission</a>
+      <a href="#contact">Contact</a>
+      <a href="#portal" class="btn">Customer Portal</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="eyebrow">Cryogenic Interconnects for Quantum Systems</div>
+      <h1>Precision cryogenic connectivity for superconducting quantum hardware.</h1>
+      <p>
+        PWG Quantum develops cryogenic cable platforms and interconnect solutions
+        for superconducting qubit control, cryogenic RF and microwave links,
+        test systems and advanced instrumentation.
+      </p>
+      <div class="actions">
+        <a class="btn primary" href="mailto:info@PWGquantum.com?subject=Request%20a%20Quote">Request a Quote</a>
+        <a class="btn" href="PWG_Product_Catalog.pdf" target="_blank">Product Catalog</a>
+      </div>
+    </div>
+
+    <div class="hero-note">
+      <strong>Sales &amp; technical inquiries</strong>
+      Custom lengths, terminations and development configurations.<br><br>
+      <a href="mailto:info@PWGquantum.com" style="color:var(--blue);font-weight:700">info@PWGquantum.com</a>
+    </div>
+  </div>
+</header>
+
+<section id="products">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">Product Line</div>
+        <h2>Cryogenic cable platforms</h2>
+      </div>
+      <p>
+        A clear product architecture from the current production platform
+        to advanced and next-generation cryogenic interconnect technologies.
+      </p>
+    </div>
+
+    <div class="product-grid">
+      <article class="product">
+        <div class="status">Available</div>
+        <h3>PWG C-Series</h3>
+        <p>Current cryogenic cable platform for quantum systems, test and measurement, and qubit-control applications.</p>
+        <div class="specs">
+          <div class="spec-row"><span>Current model</span><span>PWG-C1-0047-SMAM-0300</span></div>
+          <div class="spec-row"><span>Lengths</span><span>300 / 500 / 1000 mm + custom</span></div>
+        </div>
+      </article>
+
+      <article class="product">
+        <div class="status">In Development</div>
+        <h3>PWG P-Series</h3>
+        <p>Advanced performance platform for demanding cryogenic signal environments and future system integration.</p>
+        <div class="specs">
+          <div class="spec-row"><span>Options</span><span>LN / NM</span></div>
+          <div class="spec-row"><span>Interfaces</span><span>SMA / SMPM / WSMP / RAW</span></div>
+        </div>
+      </article>
+
+      <article class="product">
+        <div class="status">R&amp;D</div>
+        <h3>PWG X-Series</h3>
+        <p>Proprietary next-generation cryogenic interconnect technology for future high-density quantum systems.</p>
+        <div class="specs">
+          <div class="spec-row"><span>Architecture</span><span>Proprietary</span></div>
+          <div class="spec-row"><span>Engagement</span><span>Customer development discussions</span></div>
+        </div>
+      </article>
+    </div>
+
+    <div class="config">
+      <div><small>Lengths</small><strong>300 / 500 / 1000 mm + custom</strong></div>
+      <div><small>Terminations</small><strong>SMA · SMPM · WSMP · Mixed · RAW</strong></div>
+      <div><small>Options</small><strong>Non-Magnetic (NM) · Low-Noise (LN)</strong></div>
+      <div><small>Ordering</small><strong>Standard and custom configurations</strong></div>
+    </div>
+
+    <div class="actions" style="margin-top:26px">
+      <a class="btn primary" href="mailto:info@PWGquantum.com?subject=Product%20Inquiry">Discuss a Configuration</a>
+      <a class="btn link" href="PWG_Product_Catalog.pdf" target="_blank">View full product catalog →</a>
+    </div>
+  </div>
+</section>
+
+<section id="applications">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">Applications</div>
+        <h2>Where PWG fits</h2>
+      </div>
+      <p>Designed for cryogenic environments where compact, repeatable and configurable signal interconnects are required.</p>
+    </div>
+
+    <div class="applications">
+      <div class="application"><strong>Superconducting Qubit Control</strong><span>Interconnect solutions for cryogenic control and measurement chains.</span></div>
+      <div class="application"><strong>Cryogenic Test &amp; Measurement</strong><span>Configurable assemblies for laboratory, characterization and qualification environments.</span></div>
+      <div class="application"><strong>Cryogenic RF &amp; Microwave Links</strong><span>Signal routing across cryogenic stages and experimental systems.</span></div>
+      <div class="application"><strong>Advanced Sensing &amp; Instrumentation</strong><span>Precision cryogenic connectivity for specialized research instrumentation.</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="mission">
+  <div class="wrap mission">
+    <div>
+      <div class="eyebrow">Mission</div>
+      <h2>Build the infrastructure quantum systems need to scale.</h2>
+    </div>
+    <div>
+      <p class="mission-copy">
+        PWG Quantum focuses on the physical interconnect layer between
+        superconducting quantum processors and classical control systems.
+      </p>
+      <p class="mission-note">
+        Our goal is practical: reduce infrastructure constraints as quantum systems grow,
+        while supporting the broader scientific advances that scalable quantum computing may enable.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section id="contact" class="contact">
+  <div class="wrap contact-box">
+    <div>
+      <div class="eyebrow">Sales &amp; Technical Inquiries</div>
+      <h2>Tell us what you need to connect.</h2>
+      <p>Product questions, custom configurations, samples and development discussions.</p>
+    </div>
+    <div class="actions">
+      <a class="btn primary" href="mailto:info@PWGquantum.com?subject=PWG%20Quantum%20Inquiry">Email PWG Quantum</a>
+    </div>
+  </div>
+</section>
+
+<section id="portal" class="portal">
+  <div class="wrap portal-row">
+    <div>
+      <h3>Customer Portal — planned</h3>
+      <p>Order history, serial-number tracking, documentation and technical support.</p>
+    </div>
+    <div class="actions">
+      <span class="btn">Coming Soon</span>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap footer-row">
+    <div>© 2026 PWG Quantum</div>
+    <div>PWGquantum.com · info@PWGquantum.com</div>
+  </div>
+</footer>
+
+</body>
+</html>
