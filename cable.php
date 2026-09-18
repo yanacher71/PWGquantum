@@ -65,7 +65,7 @@ if (!empty($cable['document_url'])) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?= h($cable['serial_number']) ?> | PWG Quantum</title>
   <meta name="robots" content="noindex">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="/styles.css">
   <style>
     .cable-page { padding: calc(var(--header-height) + 64px) 0 80px; min-height: 70vh; }
     .cable-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 32px; }
@@ -78,11 +78,11 @@ if (!empty($cable['document_url'])) {
 <body>
 <header class="site-header" id="site-header">
   <div class="header-inner">
-    <a href="index.html" class="logo" aria-label="PWG Quantum home">
-      <span class="logo-mark"><img src="logo.gif" alt="PWG Quantum" width="32" height="32"></span>
+    <a href="/" class="logo" aria-label="PWG Quantum home">
+      <span class="logo-mark"><img src="/logo.gif" alt="PWG Quantum" width="32" height="32"></span>
       <span class="logo-text"><span class="logo-title">PWG Quantum</span><span class="logo-sub">Phononic Waveguides</span></span>
     </a>
-    <div class="header-actions"><a href="index.html" class="btn btn-secondary btn-small">Main Site</a></div>
+    <div class="header-actions"><a href="/" class="btn btn-secondary btn-small">Main Site</a></div>
   </div>
 </header>
 <main class="cable-page">
@@ -112,14 +112,14 @@ if (!empty($cable['document_url'])) {
       <?php endif; ?>
       <div class="cable-actions">
         <?php if ($documentUrl): ?><a class="btn btn-primary" href="<?= h($documentUrl) ?>" target="_blank" rel="noopener noreferrer">View Test Report</a><?php endif; ?>
-        <a class="btn btn-secondary" href="index.html">PWG Quantum</a>
+        <a class="btn btn-secondary" href="/">PWG Quantum</a>
       </div>
     </div>
   </div>
 </main>
 <footer class="site-footer">
   <div class="section-inner footer-inner">
-    <div class="footer-brand"><img src="logo.gif" alt="" width="28" height="28" class="footer-logo"><div class="footer-text"><strong>PWG Quantum</strong><span>Phononic Waveguides</span></div></div>
+    <div class="footer-brand"><img src="/logo.gif" alt="" width="28" height="28" class="footer-logo"><div class="footer-text"><strong>PWG Quantum</strong><span>Phononic Waveguides</span></div></div>
     <div class="footer-copy">&copy; <?= date('Y') ?> Phononic Waveguides. Cable records and qualification documentation.</div>
   </div>
 </footer>
