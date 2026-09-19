@@ -29,7 +29,8 @@ if(strlen($body)>25*1024*1024){
   http_response_code(413); echo json_encode(['ok'=>false,'error'=>'too_large']); exit;
 }
 
-$dir=dirname(__DIR__).'/reports';
+/* Store generated reports outside the Git-managed public_html tree. */
+$dir=dirname(__DIR__,2).'/pwg-reports';
 if(!is_dir($dir) && !mkdir($dir,0755,true)){
   http_response_code(500); echo json_encode(['ok'=>false,'error'=>'storage']); exit;
 }
@@ -39,4 +40,8 @@ if(file_put_contents($tmp,$body,LOCK_EX)===false || !rename($tmp,$target)){
   @unlink($tmp); http_response_code(500); echo json_encode(['ok'=>false,'error'=>'write']); exit;
 }
 
-echo json_encode(['ok'=>true,'serial_number'=>$serial,'report_url'=>'https://pwgquantum.com/reports/'.rawurlencode($serial).'.pdf'],JSON_UNESCAPED_SLASHES);
+echo json_encode([
+  'ok'=>true,
+  'serial_number'=>$serial,
+  'report_url'=>'https://pwgquantum.com/c/'.rawurlencode($serial).'/report'
+],JSON_UNESCAPED_SLASHES);
