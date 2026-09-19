@@ -93,7 +93,7 @@ if(isset($_GET['edit'])){
         $st=$pdo->prepare('SELECT * FROM pwg_cables WHERE serial_number=? LIMIT 1'); $st->execute([$s]); $edit=$st->fetch()?:null;
     }
 }
-$rows=$pdo->query('SELECT serial_number,model_number,status,source_doc_id,pdf_file_id,updated_at FROM pwg_cables ORDER BY id DESC LIMIT 100')->fetchAll();
+$rows=$pdo->query('SELECT serial_number,model_number,status,source_doc_id,pdf_file_id,internal_source_doc_id,internal_pdf_file_id,updated_at FROM pwg_cables ORDER BY id DESC LIMIT 100')->fetchAll();
 $statuses=['prototype','testing','passed','failed','shipped'];
 ?>
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -132,10 +132,19 @@ $statuses=['prototype','testing','passed','failed','shipped'];
 <td><?=h($r['model_number'])?></td>
 <td><?=h($r['status'])?></td>
 <td>
+<strong>Customer:</strong>
 <?php if($r['source_doc_id']):?>
-<a href="https://docs.google.com/document/d/<?=rawurlencode($r['source_doc_id'])?>/edit" target="_blank" rel="noopener">Google Doc</a>
-<?php else:?>—<?php endif;?>
-<?php if($r['pdf_file_id']):?> &nbsp;|&nbsp; <a href="/c/<?=rawurlencode($r['serial_number'])?>/report" target="_blank">PDF Report</a><?php endif;?>
+<a href="https://docs.google.com/document/d/<?=rawurlencode($r['source_doc_id'])?>/edit" target="_blank" rel="noopener">Doc</a>
+<?php else:?>pending<?php endif;?>
+<?php if($r['pdf_file_id']):?> &nbsp;|&nbsp; <a href="/c/<?=rawurlencode($r['serial_number'])?>/report" target="_blank">PDF</a><?php endif;?>
+<br>
+<strong>Internal:</strong>
+<?php if($r['internal_source_doc_id']):?>
+<a href="https://docs.google.com/document/d/<?=rawurlencode($r['internal_source_doc_id'])?>/edit" target="_blank" rel="noopener">Doc</a>
+<?php else:?>pending<?php endif;?>
+<?php if($r['internal_pdf_file_id']):?>
+&nbsp;|&nbsp; <a href="https://drive.google.com/file/d/<?=rawurlencode($r['internal_pdf_file_id'])?>/view" target="_blank" rel="noopener">PDF</a>
+<?php endif;?>
 </td>
 <td>
 <a href="/admin/cables.php?edit=<?=rawurlencode($r['serial_number'])?>">Edit</a>
