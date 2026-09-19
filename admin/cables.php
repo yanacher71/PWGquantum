@@ -125,6 +125,22 @@ $statuses=['prototype','testing','passed','failed','shipped'];
 <label class="wide">Notes<textarea name="notes"><?=h($edit['notes']??'')?></textarea></label>
 <div class="wide"><button class="btn btn-primary" type="submit" name="save" value="1">Save Cable</button> <?php if($edit):?><a class="btn btn-secondary" href="/admin/cables.php">New Cable</a><?php endif;?></div>
 </form></section>
-<section class="panel"><h2>Recent Cables</h2><div style="overflow:auto"><table class="admin-table"><thead><tr><th>Serial</th><th>Model</th><th>Status</th><th>Doc</th><th>PDF</th><th></th></tr></thead><tbody>
-<?php foreach($rows as $r):?><tr><td><a href="/c/<?=rawurlencode($r['serial_number'])?>" target="_blank"><?=h($r['serial_number'])?></a></td><td><?=h($r['model_number'])?></td><td><?=h($r['status'])?></td><td><?= $r['source_doc_id']?'Yes':'—' ?></td><td><?= $r['pdf_file_id']?'Yes':'—' ?></td><td><a href="/admin/cables.php?edit=<?=rawurlencode($r['serial_number'])?>">Edit</a></td></tr><?php endforeach;?>
+<section class="panel"><h2>Recent Cables</h2><div style="overflow:auto"><table class="admin-table"><thead><tr><th>Serial</th><th>Model</th><th>Status</th><th>Documents</th><th>Actions</th></tr></thead><tbody>
+<?php foreach($rows as $r):?>
+<tr>
+<td><?=h($r['serial_number'])?></td>
+<td><?=h($r['model_number'])?></td>
+<td><?=h($r['status'])?></td>
+<td>
+<?php if($r['source_doc_id']):?>
+<a href="https://docs.google.com/document/d/<?=rawurlencode($r['source_doc_id'])?>/edit" target="_blank" rel="noopener">Google Doc</a>
+<?php else:?>—<?php endif;?>
+<?php if($r['pdf_file_id']):?> &nbsp;|&nbsp; <a href="/c/<?=rawurlencode($r['serial_number'])?>/report" target="_blank">PDF Report</a><?php endif;?>
+</td>
+<td>
+<a href="/admin/cables.php?edit=<?=rawurlencode($r['serial_number'])?>">Edit</a>
+&nbsp;|&nbsp; <a href="/c/<?=rawurlencode($r['serial_number'])?>" target="_blank">Customer Page</a>
+</td>
+</tr>
+<?php endforeach;?>
 </tbody></table></div></section></main></body></html>
