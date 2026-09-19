@@ -56,7 +56,7 @@ if (!preg_match('/^[A-Z0-9_-]{1,32}$/', $serial) ||
     exit;
 }
 
-$documentUrl = 'https://pwgquantum.com/reports/' . rawurlencode($serial) . '.pdf';
+$documentUrl = 'https://pwgquantum.com/c/' . rawurlencode($serial) . '/report';
 
 $stmt = $pdo->prepare(
     'UPDATE pwg_cables
