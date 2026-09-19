@@ -46,7 +46,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 $stmt = $pdo->query(
     "SELECT serial_number, model_number, cable_family, length_mm, outer_diameter_mm,
             connector_a, connector_b, manufacture_date, lot_number, status,
-            source_doc_id, pdf_file_id, pdf_updated_at
+            source_doc_id, pdf_file_id, pdf_updated_at,
+            internal_source_doc_id, internal_pdf_file_id, internal_pdf_updated_at
      FROM pwg_cables
      ORDER BY serial_number"
 );
