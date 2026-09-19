@@ -44,9 +44,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 }
 
 $stmt = $pdo->query(
-    "SELECT serial_number, source_doc_id, pdf_file_id, pdf_updated_at
+    "SELECT serial_number, model_number, cable_family, length_mm, outer_diameter_mm,
+            connector_a, connector_b, manufacture_date, lot_number, status,
+            source_doc_id, pdf_file_id, pdf_updated_at
      FROM pwg_cables
-     WHERE source_doc_id IS NOT NULL AND source_doc_id <> ''
      ORDER BY serial_number"
 );
 echo json_encode(['ok' => true, 'cables' => $stmt->fetchAll()], JSON_UNESCAPED_SLASHES);
