@@ -1,4 +1,7 @@
 RewriteEngine On
 
+# Customer-facing PDF report URL, backed by private Hostinger storage.
+RewriteRule ^c/([A-Z0-9_-]{1,32})/report/?$ report.php?id=$1 [L,QSA,NC]
+
 # Clean permanent cable-record URLs, e.g. /c/PWG000001
 RewriteRule ^c/([A-Z0-9_-]{1,32})/?$ cable.php?id=$1 [L,QSA,NC]
