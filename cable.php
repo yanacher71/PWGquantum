@@ -43,6 +43,22 @@ if (!$cable) {
     exit('Cable record not found.');
 }
 
+/*
+ * Count successful cable-page views only after confirming that the
+ * requested serial number exists. The counter is intentionally not
+ * displayed on the customer-facing page.
+ */
+try {
+    $viewStmt = $pdo->prepare(
+        'UPDATE pwg_cables
+         SET page_views = page_views + 1, last_viewed_at = NOW()
+         WHERE serial_number = ?'
+    );
+    $viewStmt->execute([$serial]);
+} catch (Throwable $e) {
+    // Analytics must never prevent the customer page from loading.
+}
+
 function h($value): string {
     return htmlspecialchars((string)($value ?? ''), ENT_QUOTES, 'UTF-8');
 }
