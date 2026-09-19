@@ -46,9 +46,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $body = json_decode((string)file_get_contents('php://input'), true);
 $serial = strtoupper(trim((string)($body['serial_number'] ?? '')));
 $pdfId = trim((string)($body['pdf_file_id'] ?? ''));
+$sourceDocId = trim((string)($body['source_doc_id'] ?? ''));
 
 if (!preg_match('/^[A-Z0-9_-]{1,32}$/', $serial) ||
-    !preg_match('/^[A-Za-z0-9_-]{10,128}$/', $pdfId)) {
+    !preg_match('/^[A-Za-z0-9_-]{10,128}$/', $pdfId) ||
+    ($sourceDocId !== '' && !preg_match('/^[A-Za-z0-9_-]{10,128}$/', $sourceDocId))) {
     http_response_code(400);
     echo json_encode(['ok' => false, 'error' => 'invalid_input']);
     exit;
@@ -58,10 +60,11 @@ $documentUrl = 'https://drive.google.com/file/d/' . rawurlencode($pdfId) . '/vie
 
 $stmt = $pdo->prepare(
     'UPDATE pwg_cables
-     SET pdf_file_id = ?, document_url = ?, pdf_updated_at = NOW()
-     WHERE serial_number = ? AND source_doc_id IS NOT NULL'
+     SET source_doc_id = COALESCE(NULLIF(?, \'\'), source_doc_id),
+         pdf_file_id = ?, document_url = ?, pdf_updated_at = NOW()
+     WHERE serial_number = ?'
 );
-$stmt->execute([$pdfId, $documentUrl, $serial]);
+$stmt->execute([$sourceDocId, $pdfId, $documentUrl, $serial]);
 
 if ($stmt->rowCount() < 1) {
     http_response_code(404);
@@ -72,6 +75,7 @@ if ($stmt->rowCount() < 1) {
 echo json_encode([
     'ok' => true,
     'serial_number' => $serial,
+    'source_doc_id' => $sourceDocId,
     'pdf_file_id' => $pdfId,
     'document_url' => $documentUrl
 ], JSON_UNESCAPED_SLASHES);
