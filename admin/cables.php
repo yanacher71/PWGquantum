@@ -93,7 +93,7 @@ if(isset($_GET['edit'])){
         $st=$pdo->prepare('SELECT * FROM pwg_cables WHERE serial_number=? LIMIT 1'); $st->execute([$s]); $edit=$st->fetch()?:null;
     }
 }
-$rows=$pdo->query('SELECT serial_number,model_number,status,source_doc_id,pdf_file_id,internal_source_doc_id,internal_pdf_file_id,updated_at FROM pwg_cables ORDER BY id DESC LIMIT 100')->fetchAll();
+$rows=$pdo->query('SELECT serial_number,model_number,status,source_doc_id,pdf_file_id,internal_source_doc_id,internal_pdf_file_id,page_views,last_viewed_at,updated_at FROM pwg_cables ORDER BY id DESC LIMIT 100')->fetchAll();
 $statuses=['prototype','testing','passed','failed','shipped'];
 ?>
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -125,12 +125,14 @@ $statuses=['prototype','testing','passed','failed','shipped'];
 <label class="wide">Notes<textarea name="notes"><?=h($edit['notes']??'')?></textarea></label>
 <div class="wide"><button class="btn btn-primary" type="submit" name="save" value="1">Save Cable</button> <?php if($edit):?><a class="btn btn-secondary" href="/admin/cables.php">New Cable</a><?php endif;?></div>
 </form></section>
-<section class="panel"><h2>Recent Cables</h2><div style="overflow:auto"><table class="admin-table"><thead><tr><th>Serial</th><th>Model</th><th>Status</th><th>Documents</th><th>Actions</th></tr></thead><tbody>
+<section class="panel"><h2>Recent Cables</h2><div style="overflow:auto"><table class="admin-table"><thead><tr><th>Serial</th><th>Model</th><th>Status</th><th>Views</th><th>Last Viewed</th><th>Documents</th><th>Actions</th></tr></thead><tbody>
 <?php foreach($rows as $r):?>
 <tr>
 <td><?=h($r['serial_number'])?></td>
 <td><?=h($r['model_number'])?></td>
 <td><?=h($r['status'])?></td>
+<td><?=h($r['page_views'])?></td>
+<td><?= $r['last_viewed_at'] ? h(date('M j, Y g:i A', strtotime($r['last_viewed_at']))) : '—' ?></td>
 <td>
 <strong>Customer:</strong>
 <?php if($r['source_doc_id']):?>
