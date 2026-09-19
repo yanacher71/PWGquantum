@@ -50,7 +50,7 @@ $sourceDocId = trim((string)($body['source_doc_id'] ?? ''));
 
 if (!preg_match('/^[A-Z0-9_-]{1,32}$/', $serial) ||
     !preg_match('/^[A-Za-z0-9_-]{10,128}$/', $pdfId) ||
-    ($sourceDocId !== '' && !preg_match('/^[A-Za-z0-9_-]{10,128}$/', $sourceDocId))) {
+    !preg_match('/^[A-Za-z0-9_-]{10,128}$/', $sourceDocId)) {
     http_response_code(400);
     echo json_encode(['ok' => false, 'error' => 'invalid_input']);
     exit;
@@ -60,11 +60,17 @@ $documentUrl = 'https://drive.google.com/file/d/' . rawurlencode($pdfId) . '/vie
 
 $stmt = $pdo->prepare(
     'UPDATE pwg_cables
-     SET source_doc_id = COALESCE(NULLIF(?, \'\'), source_doc_id),
+     SET source_doc_id = ?,
          pdf_file_id = ?, document_url = ?, pdf_updated_at = NOW()
      WHERE serial_number = ?'
 );
-$stmt->execute([$sourceDocId, $pdfId, $documentUrl, $serial]);
+try {
+    $stmt->execute([$sourceDocId, $pdfId, $documentUrl, $serial]);
+} catch (Throwable $e) {
+    http_response_code(500);
+    echo json_encode(['ok' => false, 'error' => 'database_update']);
+    exit;
+}
 
 if ($stmt->rowCount() < 1) {
     http_response_code(404);
