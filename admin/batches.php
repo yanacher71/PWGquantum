@@ -180,7 +180,8 @@ $statuses=['prototype','active','consumed','rejected','archived'];
 <td><?=h($r['storage_location'])?></td>
 <td><a href="/admin/batches.php?edit=<?=rawurlencode($r['batch_number'])?>">Edit</a>
 &nbsp;|&nbsp; <a href="/batch.php?batch=<?=rawurlencode($r['batch_number'])?>" target="_blank">Batch Page</a>
-&nbsp;|&nbsp; <a href="/admin/cables.php?batch_id=<?=h($r['id'])?>">Create Cable</a></td>
+&nbsp;|&nbsp; <a href="/admin/cables.php?batch_id=<?=h($r['id'])?>">Create Cable</a>
+&nbsp;|&nbsp; <a href="/admin/batch-label.php?batch=<?=rawurlencode($r['batch_number'])?>" target="_blank">Print QR Label</a></td>
 </tr>
 <?php endforeach;?>
 </tbody></table></div></section>
