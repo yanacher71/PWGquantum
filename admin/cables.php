@@ -61,6 +61,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['save'])) {
           'connector_b'=>trim((string)($_POST['connector_b']??'')),
           'manufacture_date'=>trim((string)($_POST['manufacture_date']??'')),
           'lot_number'=>trim((string)($_POST['lot_number']??'')),
+          'batch_id'=>trim((string)($_POST['batch_id']??'')),
           'status'=>(string)($_POST['status']??'prototype'),
           'source_doc_id'=>trim((string)($_POST['source_doc_id']??'')),
           'notes'=>trim((string)($_POST['notes']??''))
@@ -68,18 +69,19 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['save'])) {
         foreach($fields as $k=>$v) if($v==='') $fields[$k]=null;
         if($fields['length_mm']!==null && (!ctype_digit((string)$fields['length_mm']) || (int)$fields['length_mm']>65535)) $error='Length must be 0–65535 mm.';
         elseif($fields['outer_diameter_mm']!==null && !is_numeric((string)$fields['outer_diameter_mm'])) $error='Outer diameter must be numeric.';
+        elseif($fields['batch_id']!==null && !ctype_digit((string)$fields['batch_id'])) $error='Invalid batch.';
         elseif($fields['source_doc_id']!==null && !preg_match('/^[A-Za-z0-9_-]{10,128}$/',(string)$fields['source_doc_id'])) $error='Enter the Google Doc file ID, not the full URL.';
         else {
             $sql="INSERT INTO pwg_cables
-            (serial_number,model_number,cable_family,length_mm,outer_diameter_mm,connector_a,connector_b,manufacture_date,lot_number,status,source_doc_id,notes)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+            (serial_number,model_number,cable_family,length_mm,outer_diameter_mm,connector_a,connector_b,manufacture_date,lot_number,batch_id,status,source_doc_id,notes)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
             ON DUPLICATE KEY UPDATE model_number=VALUES(model_number),cable_family=VALUES(cable_family),length_mm=VALUES(length_mm),
             outer_diameter_mm=VALUES(outer_diameter_mm),connector_a=VALUES(connector_a),connector_b=VALUES(connector_b),
-            manufacture_date=VALUES(manufacture_date),lot_number=VALUES(lot_number),status=VALUES(status),
+            manufacture_date=VALUES(manufacture_date),lot_number=VALUES(lot_number),batch_id=VALUES(batch_id),status=VALUES(status),
             source_doc_id=VALUES(source_doc_id),notes=VALUES(notes)";
             try {
                 $stmt=$pdo->prepare($sql);
-                $stmt->execute([$serial,$model,$fields['cable_family'],$fields['length_mm'],$fields['outer_diameter_mm'],$fields['connector_a'],$fields['connector_b'],$fields['manufacture_date'],$fields['lot_number'],$fields['status'],$fields['source_doc_id'],$fields['notes']]);
+                $stmt->execute([$serial,$model,$fields['cable_family'],$fields['length_mm'],$fields['outer_diameter_mm'],$fields['connector_a'],$fields['connector_b'],$fields['manufacture_date'],$fields['lot_number'],$fields['batch_id'],$fields['status'],$fields['source_doc_id'],$fields['notes']]);
                 $message='Cable record saved.';
             } catch(Throwable $e){ $error='Could not save cable record.'; }
         }
@@ -93,7 +95,10 @@ if(isset($_GET['edit'])){
         $st=$pdo->prepare('SELECT * FROM pwg_cables WHERE serial_number=? LIMIT 1'); $st->execute([$s]); $edit=$st->fetch()?:null;
     }
 }
-$rows=$pdo->query('SELECT serial_number,model_number,status,source_doc_id,pdf_file_id,internal_source_doc_id,internal_pdf_file_id,page_views,last_viewed_at,updated_at FROM pwg_cables ORDER BY id DESC LIMIT 100')->fetchAll();
+$batches=$pdo->query("SELECT id,batch_number,cable_family,status FROM pwg_batches ORDER BY id DESC")->fetchAll();
+$prefillBatchId='';
+if(isset($_GET['batch_id']) && ctype_digit((string)$_GET['batch_id'])) $prefillBatchId=(string)$_GET['batch_id'];
+$rows=$pdo->query('SELECT c.serial_number,c.model_number,c.status,c.batch_id,b.batch_number,c.source_doc_id,c.pdf_file_id,c.internal_source_doc_id,c.internal_pdf_file_id,c.page_views,c.last_viewed_at,c.updated_at FROM pwg_cables c LEFT JOIN pwg_batches b ON b.id=c.batch_id ORDER BY c.id DESC LIMIT 100')->fetchAll();
 $statuses=['prototype','testing','passed','failed','shipped'];
 ?>
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -107,7 +112,7 @@ $statuses=['prototype','testing','passed','failed','shipped'];
 .notice{padding:12px;border:1px solid #ccd5df;border-radius:6px;margin:15px 0}@media(max-width:700px){.form-grid{grid-template-columns:1fr}}
 </style></head><body><main class="admin-wrap">
 <div class="admin-top"><div><h1>PWG Cable Admin</h1><p>Create and edit cable records.</p></div>
-<form method="post"><button class="btn btn-secondary" name="logout" value="1">Sign out</button></form></div>
+<div style="display:flex;gap:10px"><a class="btn btn-secondary" href="/admin/batches.php">Batch Admin</a><form method="post"><button class="btn btn-secondary" name="logout" value="1">Sign out</button></form></div></div>
 <?php if($message):?><div class="notice"><?=h($message)?></div><?php endif;?><?php if($error):?><div class="notice"><?=h($error)?></div><?php endif;?>
 <section class="panel"><h2><?= $edit?'Edit '.h($edit['serial_number']):'New Cable' ?></h2>
 <form method="post" class="form-grid"><input type="hidden" name="csrf" value="<?=h($csrf)?>">
@@ -125,11 +130,12 @@ $statuses=['prototype','testing','passed','failed','shipped'];
 <label class="wide">Notes<textarea name="notes"><?=h($edit['notes']??'')?></textarea></label>
 <div class="wide"><button class="btn btn-primary" type="submit" name="save" value="1">Save Cable</button> <?php if($edit):?><a class="btn btn-secondary" href="/admin/cables.php">New Cable</a><?php endif;?></div>
 </form></section>
-<section class="panel"><h2>Recent Cables</h2><div style="overflow:auto"><table class="admin-table"><thead><tr><th>Serial</th><th>Model</th><th>Status</th><th>Views</th><th>Last Viewed</th><th>Documents</th><th>Actions</th></tr></thead><tbody>
+<section class="panel"><h2>Recent Cables</h2><div style="overflow:auto"><table class="admin-table"><thead><tr><th>Serial</th><th>Model</th><th>Batch</th><th>Status</th><th>Views</th><th>Last Viewed</th><th>Documents</th><th>Actions</th></tr></thead><tbody>
 <?php foreach($rows as $r):?>
 <tr>
 <td><?=h($r['serial_number'])?></td>
 <td><?=h($r['model_number'])?></td>
+<td><?php if($r['batch_number']):?><a href="/batch.php?batch=<?=rawurlencode($r['batch_number'])?>" target="_blank"><?=h($r['batch_number'])?></a><?php else:?>—<?php endif;?></td>
 <td><?=h($r['status'])?></td>
 <td><?=h($r['page_views'])?></td>
 <td><?= $r['last_viewed_at'] ? h(date('M j, Y g:i A', strtotime($r['last_viewed_at']))) : '—' ?></td>
