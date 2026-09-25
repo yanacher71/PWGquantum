@@ -39,7 +39,7 @@ $batchUrl = $scheme.'://'.$host.'/batch.php?batch='.rawurlencode($batch['batch_n
 *{box-sizing:border-box}body{margin:0;background:#eee;font-family:Arial,Helvetica,sans-serif;color:#111}
 .toolbar{padding:16px;text-align:center}.label{width:4in;min-height:2in;margin:20px auto;background:#fff;border:1px solid #bbb;padding:.14in;display:grid;grid-template-columns:1fr 1.32in;gap:.12in;align-items:center}
 .brand{font-size:13px;font-weight:700;letter-spacing:.04em}.sub{font-size:9px;margin-bottom:8px}.batch{font-size:20px;font-weight:700;font-family:monospace;margin:4px 0 8px}
-.meta{font-size:10px;line-height:1.45}.qr-wrap{text-align:center}.qr-wrap canvas{width:1.18in;height:1.18in;image-rendering:pixelated}.qr-caption{font:8px monospace;margin-top:4px;overflow-wrap:anywhere}
+.meta{font-size:10px;line-height:1.45}.qr-wrap{text-align:center}.qr-wrap img{width:1.18in;height:1.18in;image-rendering:pixelated;display:block;margin:0 auto}.qr-caption{font:8px monospace;margin-top:4px;overflow-wrap:anywhere}
 button,a{font-size:14px;padding:9px 14px;margin:0 4px}
 @page{size:4in 2in;margin:0}@media print{body{background:#fff}.toolbar{display:none}.label{margin:0;border:0;width:4in;height:2in;min-height:2in;page-break-after:avoid}}
 </style></head><body>
@@ -56,21 +56,7 @@ button,a{font-size:14px;padding:9px 14px;margin:0 4px}
 <?php if($batch['outer_conductor']):?><strong>Outer:</strong> <?=h($batch['outer_conductor'])?><?php endif;?>
 </div></div>
 <div class="qr-wrap">
-<canvas id="qr" width="500" height="500" aria-label="QR code for batch record"></canvas>
+<img src="https://api.qrserver.com/v1/create-qr-code/?size=500x500&amp;margin=20&amp;data=<?=rawurlencode($batchUrl)?>" alt="QR code for <?=h($batch['batch_number'])?>">
 <div class="qr-caption"><?=h($batch['batch_number'])?></div>
 </div></div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.3/qrcode.min.js"></script>
-<script>
-(function(){
-  var url = <?=json_encode($batchUrl, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>;
-  var canvas = document.getElementById('qr');
-  if (window.QRCode && QRCode.toCanvas) {
-    QRCode.toCanvas(canvas,url,{width:500,margin:4,errorCorrectionLevel:'M'},function(err){
-      if(err) canvas.replaceWith(document.createTextNode('QR generation failed'));
-    });
-  } else {
-    canvas.replaceWith(document.createTextNode('QR library unavailable'));
-  }
-})();
-</script>
 </body></html>
