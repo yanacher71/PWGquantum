@@ -1,7 +1,11 @@
 RewriteEngine On
 
-# Customer-facing PDF report URL, backed by private Hostinger storage.
-RewriteRule ^c/([A-Z0-9_-]{1,32})/report/?$ report.php?id=$1 [L,QSA,NC]
+# Public capability URLs. Do not append user-supplied query parameters.
+RewriteRule ^c/([a-f0-9]{32})/report/?$ report.php?token=$1 [END]
+RewriteRule ^c/([a-f0-9]{32})/?$ cable.php?token=$1 [END]
 
-# Clean permanent cable-record URLs, e.g. /c/PWG000001
-RewriteRule ^c/([A-Z0-9_-]{1,32})/?$ cable.php?id=$1 [L,QSA,NC]
+# Legacy serial URLs are authorized by PHP using the existing admin session.
+RewriteRule ^c/([A-Z0-9_-]{1,32})/report/?$ report.php?id=$1 [END,NC]
+RewriteRule ^c/([A-Z0-9_-]{1,32})/?$ cable.php?id=$1 [END,NC]
+
+RewriteRule ^(?:includes|migrations|tools|tests)(?:/|$) - [F,END,NC]

@@ -8,11 +8,11 @@ if (!is_file($configFile)) {
 }
 $config = require $configFile;
 
-$serial = strtoupper(trim($_GET['id'] ?? ''));
-if ($serial === '' || !preg_match('/^[A-Z0-9_-]{1,32}$/', $serial)) {
-    http_response_code(400);
-    exit('Invalid cable serial number.');
-}
+require_once __DIR__ . '/includes/cable-access.php';
+pwg_private_headers();
+$selector = pwg_access_selector($_GET, $config);
+if ($selector === null) { http_response_code(404); exit('Cable record not found.'); }
+[$lookupColumn, $lookupValue] = $selector;
 
 try {
     $pdo = new PDO(
@@ -26,12 +26,12 @@ try {
         ]
     );
     $stmt = $pdo->prepare(
-        'SELECT serial_number, model_number, cable_family, length_mm,
+        'SELECT public_token, serial_number, model_number, cable_family, length_mm,
                 outer_diameter_mm, connector_a, connector_b, manufacture_date,
                 lot_number, status, document_url, notes
-         FROM pwg_cables WHERE serial_number = ? LIMIT 1'
+         FROM pwg_cables WHERE ' . $lookupColumn . ' = ? LIMIT 1'
     );
-    $stmt->execute([$serial]);
+    $stmt->execute([$lookupValue]);
     $cable = $stmt->fetch();
 } catch (Throwable $e) {
     http_response_code(500);
@@ -54,7 +54,7 @@ try {
          SET page_views = page_views + 1, last_viewed_at = NOW()
          WHERE serial_number = ?'
     );
-    $viewStmt->execute([$serial]);
+    $viewStmt->execute([$cable['serial_number']]);
 } catch (Throwable $e) {
     // Analytics must never prevent the customer page from loading.
 }
@@ -66,13 +66,14 @@ function valueOrDash($value): string {
     return ($value === null || $value === '') ? '&mdash;' : h($value);
 }
 
+// Route customer reports through the same authorization boundary.
 $documentUrl = null;
 if (!empty($cable['document_url'])) {
-    $candidate = filter_var($cable['document_url'], FILTER_VALIDATE_URL);
-    if ($candidate && strtolower((string)parse_url($candidate, PHP_URL_SCHEME)) === 'https') {
-        $documentUrl = $candidate;
-    }
+    $documentUrl = !empty($cable['public_token'])
+        ? pwg_public_cable_path($cable['public_token']) . '/report'
+        : '/report.php?id=' . rawurlencode($cable['serial_number']);
 }
+
 ?>
 <!DOCTYPE html>
 <html lang="en">

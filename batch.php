@@ -4,6 +4,10 @@ declare(strict_types=1);
 $configFile = dirname(__DIR__) . '/pwg-db-config.php';
 if (!is_file($configFile)) { http_response_code(500); exit('Configuration error.'); }
 $config = require $configFile;
+require_once __DIR__ . '/includes/cable-access.php';
+pwg_private_headers();
+if (!pwg_is_admin($config)) { http_response_code(403); exit('Admin sign-in required.'); }
+
 
 $batchNumber = strtoupper(trim((string)($_GET['batch'] ?? '')));
 if ($batchNumber === '' || !preg_match('/^[A-Z0-9_-]{1,32}$/', $batchNumber)) {
