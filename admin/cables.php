@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 session_start();
+header('Cache-Control: private, no-store');
+header('Referrer-Policy: no-referrer');
+require_once dirname(__DIR__) . '/includes/cable-access.php';
 
 $configFile = dirname(__DIR__, 2) . '/pwg-db-config.php';
 if (!is_file($configFile)) { http_response_code(500); exit('Configuration error.'); }
@@ -73,15 +76,15 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['save'])) {
         elseif($fields['source_doc_id']!==null && !preg_match('/^[A-Za-z0-9_-]{10,128}$/',(string)$fields['source_doc_id'])) $error='Enter the Google Doc file ID, not the full URL.';
         else {
             $sql="INSERT INTO pwg_cables
-            (serial_number,model_number,cable_family,length_mm,outer_diameter_mm,connector_a,connector_b,manufacture_date,lot_number,batch_id,status,source_doc_id,notes)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+            (public_token,serial_number,model_number,cable_family,length_mm,outer_diameter_mm,connector_a,connector_b,manufacture_date,lot_number,batch_id,status,source_doc_id,notes)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ON DUPLICATE KEY UPDATE model_number=VALUES(model_number),cable_family=VALUES(cable_family),length_mm=VALUES(length_mm),
             outer_diameter_mm=VALUES(outer_diameter_mm),connector_a=VALUES(connector_a),connector_b=VALUES(connector_b),
             manufacture_date=VALUES(manufacture_date),lot_number=VALUES(lot_number),batch_id=VALUES(batch_id),status=VALUES(status),
             source_doc_id=VALUES(source_doc_id),notes=VALUES(notes)";
             try {
                 $stmt=$pdo->prepare($sql);
-                $stmt->execute([$serial,$model,$fields['cable_family'],$fields['length_mm'],$fields['outer_diameter_mm'],$fields['connector_a'],$fields['connector_b'],$fields['manufacture_date'],$fields['lot_number'],$fields['batch_id'],$fields['status'],$fields['source_doc_id'],$fields['notes']]);
+                $stmt->execute([bin2hex(random_bytes(16)),$serial,$model,$fields['cable_family'],$fields['length_mm'],$fields['outer_diameter_mm'],$fields['connector_a'],$fields['connector_b'],$fields['manufacture_date'],$fields['lot_number'],$fields['batch_id'],$fields['status'],$fields['source_doc_id'],$fields['notes']]);
                 $message='Cable record saved.';
             } catch(Throwable $e){ $error='Could not save cable record.'; }
         }
@@ -98,7 +101,7 @@ if(isset($_GET['edit'])){
 $batches=$pdo->query("SELECT id,batch_number,cable_family,status FROM pwg_batches ORDER BY id DESC")->fetchAll();
 $prefillBatchId='';
 if(isset($_GET['batch_id']) && ctype_digit((string)$_GET['batch_id'])) $prefillBatchId=(string)$_GET['batch_id'];
-$rows=$pdo->query('SELECT c.serial_number,c.model_number,c.status,c.batch_id,b.batch_number,c.source_doc_id,c.pdf_file_id,c.internal_source_doc_id,c.internal_pdf_file_id,c.page_views,c.last_viewed_at,c.updated_at FROM pwg_cables c LEFT JOIN pwg_batches b ON b.id=c.batch_id ORDER BY c.id DESC LIMIT 100')->fetchAll();
+$rows=$pdo->query('SELECT c.public_token,c.serial_number,c.model_number,c.status,c.batch_id,b.batch_number,c.source_doc_id,c.pdf_file_id,c.internal_source_doc_id,c.internal_pdf_file_id,c.page_views,c.last_viewed_at,c.updated_at FROM pwg_cables c LEFT JOIN pwg_batches b ON b.id=c.batch_id ORDER BY c.id DESC LIMIT 100')->fetchAll();
 $statuses=['prototype','testing','passed','failed','shipped'];
 ?>
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -130,6 +133,8 @@ $statuses=['prototype','testing','passed','failed','shipped'];
 <label class="wide">Notes<textarea name="notes"><?=h($edit['notes']??'')?></textarea></label>
 <div class="wide"><button class="btn btn-primary" type="submit" name="save" value="1">Save Cable</button> <?php if($edit):?><a class="btn btn-secondary" href="/admin/cables.php">New Cable</a><?php endif;?></div>
 </form></section>
+<section class="panel"><h2>Find Cable by Serial Number</h2>
+<form method="get" action="/cable.php" target="_blank"><label>Serial Number <input name="id" maxlength="32" required></label> <button class="btn btn-secondary">Open Cable</button></form></section>
 <section class="panel"><h2>Recent Cables</h2><div style="overflow:auto"><table class="admin-table"><thead><tr><th>Serial</th><th>Model</th><th>Batch</th><th>Status</th><th>Views</th><th>Last Viewed</th><th>Documents</th><th>Actions</th></tr></thead><tbody>
 <?php foreach($rows as $r):?>
 <tr>
@@ -144,7 +149,7 @@ $statuses=['prototype','testing','passed','failed','shipped'];
 <?php if($r['source_doc_id']):?>
 <a href="https://docs.google.com/document/d/<?=rawurlencode($r['source_doc_id'])?>/edit" target="_blank" rel="noopener">Doc</a>
 <?php else:?>pending<?php endif;?>
-<?php if($r['pdf_file_id']):?> &nbsp;|&nbsp; <a href="/c/<?=rawurlencode($r['serial_number'])?>/report" target="_blank">PDF</a><?php endif;?>
+<?php if($r['pdf_file_id']):?> &nbsp;|&nbsp; <a href="/report.php?id=<?=rawurlencode($r['serial_number'])?>" target="_blank">PDF</a><?php endif;?>
 <br>
 <strong>Internal:</strong>
 <?php if($r['internal_source_doc_id']):?>
@@ -156,7 +161,11 @@ $statuses=['prototype','testing','passed','failed','shipped'];
 </td>
 <td>
 <a href="/admin/cables.php?edit=<?=rawurlencode($r['serial_number'])?>">Edit</a>
-&nbsp;|&nbsp; <a href="/c/<?=rawurlencode($r['serial_number'])?>" target="_blank">Customer Page</a>
+&nbsp;|&nbsp; <a href="/cable.php?id=<?=rawurlencode($r['serial_number'])?>" target="_blank">Cable Page</a>
+<?php if (!empty($r['public_token'])): ?>
+&nbsp;|&nbsp; <a href="<?=h(pwg_public_cable_path($r['public_token']))?>" target="_blank" rel="noreferrer">Public QR Link</a>
+&nbsp;|&nbsp; <a href="/admin/cable-label.php?id=<?=rawurlencode($r['serial_number'])?>" target="_blank">Print QR Label</a>
+<?php else: ?> <small>QR token pending backfill</small><?php endif; ?>
 </td>
 </tr>
 <?php endforeach;?>

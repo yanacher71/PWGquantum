@@ -56,7 +56,15 @@ if (!preg_match('/^[A-Z0-9_-]{1,32}$/', $serial) ||
     exit;
 }
 
-$documentUrl = 'https://pwgquantum.com/c/' . rawurlencode($serial) . '/report';
+require_once dirname(__DIR__) . '/includes/cable-access.php';
+$tokenStmt = $pdo->prepare('SELECT public_token FROM pwg_cables WHERE serial_number=? LIMIT 1');
+$tokenStmt->execute([$serial]);
+$token = $tokenStmt->fetchColumn();
+if ($token === false) { http_response_code(404); echo json_encode(['ok'=>false,'error'=>'cable_not_found']); exit; }
+if (!is_string($token) || !preg_match('/\A[a-f0-9]{32}\z/D', $token)) {
+    http_response_code(409); echo json_encode(['ok'=>false,'error'=>'public_token_not_initialized']); exit;
+}
+$documentUrl = pwg_public_report_url($token);
 
 $stmt = $pdo->prepare(
     'UPDATE pwg_cables
@@ -72,11 +80,6 @@ try {
     exit;
 }
 
-if ($stmt->rowCount() < 1) {
-    http_response_code(404);
-    echo json_encode(['ok' => false, 'error' => 'cable_not_found']);
-    exit;
-}
 
 echo json_encode([
     'ok' => true,

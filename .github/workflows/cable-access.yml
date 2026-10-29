@@ -1,0 +1,21 @@
+name: Cable access checks
+on:
+  pull_request:
+    paths:
+      - '**.php'
+      - '.htaccess'
+      - 'migrations/**'
+      - 'tests/**'
+      - '.github/workflows/cable-access.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  php:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP syntax
+        run: find . -name '*.php' -not -path './.git/*' -print0 | xargs -0 -n 1 php -l
+      - name: Authorization policy tests
+        run: php tests/cable-access.php
