@@ -6,7 +6,7 @@ if (!is_file($configFile)) { http_response_code(500); exit('Configuration error.
 $config = require $configFile;
 require_once __DIR__ . '/includes/cable-access.php';
 pwg_private_headers();
-if (!pwg_is_admin($config)) { http_response_code(403); exit('Admin sign-in required.'); }
+if (!pwg_is_admin($config)) { header('Location: '/admin/batches.php', true, 303); exit; }
 
 
 $batchNumber = strtoupper(trim((string)($_GET['batch'] ?? '')));
