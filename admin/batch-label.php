@@ -6,7 +6,7 @@ $configFile = dirname(__DIR__, 2) . '/pwg-db-config.php';
 if (!is_file($configFile)) { http_response_code(500); exit('Configuration error.'); }
 $config = require $configFile;
 
-if (empty($_SESSION['pwg_admin'])) { header('Location: '/admin/batches.php', true, 303); exit; }
+if (empty($_SESSION['pwg_admin'])) { header('Location: /admin/batches.php', true, 303); exit; }
 
 $batchNumber = strtoupper(trim((string)($_GET['batch'] ?? '')));
 if ($batchNumber === '' || !preg_match('/^[A-Z0-9_-]{1,32}$/', $batchNumber)) {
