@@ -5,7 +5,7 @@ pwg_private_headers();
 $configFile = dirname(__DIR__, 2) . '/pwg-db-config.php';
 if (!is_file($configFile)) { http_response_code(500); exit('Configuration error.'); }
 $config = require $configFile;
-if (!pwg_is_admin($config)) { header('Location: '/admin/cables.php', true, 303); exit; }
+if (!pwg_is_admin($config)) { header('Location: /admin/cables.php', true, 303); exit; }
 $serial = is_string($_GET['id'] ?? null) ? strtoupper(trim($_GET['id'])) : '';
 if (!preg_match('/\A[A-Z0-9_-]{1,32}\z/D', $serial)) { http_response_code(400); exit('Invalid serial number.'); }
 try {
