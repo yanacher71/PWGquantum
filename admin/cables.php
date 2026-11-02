@@ -82,15 +82,18 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['save'])) {
             outer_diameter_mm=VALUES(outer_diameter_mm),connector_a=VALUES(connector_a),connector_b=VALUES(connector_b),
             manufacture_date=VALUES(manufacture_date),lot_number=VALUES(lot_number),batch_id=VALUES(batch_id),status=VALUES(status),
             source_doc_id=VALUES(source_doc_id),notes=VALUES(notes)";
+            // Duplicating must create a new cable, never overwrite a matching serial.
+            if (!empty($_POST['duplicate_new'])) $sql=explode('ON DUPLICATE KEY UPDATE', $sql, 2)[0];
             try {
                 $stmt=$pdo->prepare($sql);
                 $stmt->execute([bin2hex(random_bytes(16)),$serial,$model,$fields['cable_family'],$fields['length_mm'],$fields['outer_diameter_mm'],$fields['connector_a'],$fields['connector_b'],$fields['manufacture_date'],$fields['lot_number'],$fields['batch_id'],$fields['status'],$fields['source_doc_id'],$fields['notes']]);
                 $message='Cable record saved.';
-            } catch(Throwable $e){ $error='Could not save cable record.'; }
+            } catch(Throwable $e){ $error=!empty($_POST['duplicate_new']) ? 'Could not create duplicate. Choose a unique serial number and try again.' : 'Could not save cable record.'; }
         }
     }
 }
 
+$duplicateNew=!empty($_POST['duplicate_new']);
 $edit=null;
 if(isset($_GET['edit'])){
     $s=strtoupper(trim((string)$_GET['edit']));
@@ -98,6 +101,8 @@ if(isset($_GET['edit'])){
         $st=$pdo->prepare('SELECT * FROM pwg_cables WHERE serial_number=? LIMIT 1'); $st->execute([$s]); $edit=$st->fetch()?:null;
     }
 }
+if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['save']) && $error!=='') $edit=$_POST;
+$previousCable=$pdo->query('SELECT serial_number,model_number,cable_family,length_mm,outer_diameter_mm,connector_a,connector_b,manufacture_date,lot_number,batch_id,status,source_doc_id,notes FROM pwg_cables ORDER BY id DESC LIMIT 1')->fetch() ?: null;
 $batches=$pdo->query("SELECT id,batch_number,cable_family,status FROM pwg_batches ORDER BY id DESC")->fetchAll();
 $prefillBatchId='';
 if(isset($_GET['batch_id']) && ctype_digit((string)$_GET['batch_id'])) $prefillBatchId=(string)$_GET['batch_id'];
@@ -117,8 +122,11 @@ $statuses=['prototype','testing','passed','failed','shipped'];
 <div class="admin-top"><div><h1>PWG Cable Admin</h1><p>Create and edit cable records.</p></div>
 <div style="display:flex;gap:10px"><a class="btn btn-secondary" href="/admin/batches.php">Batch Admin</a><form method="post"><button class="btn btn-secondary" name="logout" value="1">Sign out</button></form></div></div>
 <?php if($message):?><div class="notice"><?=h($message)?></div><?php endif;?><?php if($error):?><div class="notice"><?=h($error)?></div><?php endif;?>
-<section class="panel"><h2><?= $edit?'Edit '.h($edit['serial_number']):'New Cable' ?></h2>
-<form method="post" class="form-grid"><input type="hidden" name="csrf" value="<?=h($csrf)?>">
+<section class="panel"><h2><?= $duplicateNew?'New Cable (duplicate)':($edit?'Edit '.h($edit['serial_number']):'New Cable') ?></h2>
+<button class="btn btn-secondary" type="button" id="duplicate-previous" data-cable="<?=h(json_encode($previousCable, JSON_THROW_ON_ERROR))?>" <?=$previousCable?'':'disabled'?>>Duplicate previous cable</button>
+<p id="duplicate-notice" role="status"></p>
+<form method="post" class="form-grid" id="cable-form"><input type="hidden" name="csrf" value="<?=h($csrf)?>">
+<input type="hidden" name="duplicate_new" value="<?=$duplicateNew?'1':''?>">
 <label>Serial Number<input name="serial_number" maxlength="32" required value="<?=h($edit['serial_number']??'')?>"></label>
 <label>Model Number<input name="model_number" maxlength="64" required value="<?=h($edit['model_number']??'')?>"></label>
 <label>Cable Family<input name="cable_family" maxlength="16" value="<?=h($edit['cable_family']??'')?>"></label>
@@ -128,6 +136,7 @@ $statuses=['prototype','testing','passed','failed','shipped'];
 <label>Connector B<input name="connector_b" maxlength="32" value="<?=h($edit['connector_b']??'')?>"></label>
 <label>Manufacture Date<input type="date" name="manufacture_date" value="<?=h($edit['manufacture_date']??'')?>"></label>
 <label>Lot Number<input name="lot_number" maxlength="32" value="<?=h($edit['lot_number']??'')?>"></label>
+<label>Batch<select name="batch_id"><option value="">No batch</option><?php foreach($batches as $b):?><option value="<?=h($b['id'])?>" <?=((string)($edit['batch_id']??$prefillBatchId)===(string)$b['id'])?'selected':''?>><?=h($b['batch_number'])?></option><?php endforeach;?></select></label>
 <label>Status<select name="status"><?php foreach($statuses as $s):?><option value="<?=h($s)?>" <?=($edit['status']??'prototype')===$s?'selected':''?>><?=h($s)?></option><?php endforeach;?></select></label>
 <label class="wide">Google Doc File ID<input name="source_doc_id" maxlength="128" value="<?=h($edit['source_doc_id']??'')?>" placeholder="Example: 1mfzzpCxOT_ac0zINUmep27BHNFsUXpVV"></label>
 <label class="wide">Notes<textarea name="notes"><?=h($edit['notes']??'')?></textarea></label>
@@ -169,4 +178,4 @@ $statuses=['prototype','testing','passed','failed','shipped'];
 </td>
 </tr>
 <?php endforeach;?>
-</tbody></table></div></section></main></body></html>
+</tbody></table></div></section></main><script src="/assets/duplicate-cable.js"></script></body></html>
