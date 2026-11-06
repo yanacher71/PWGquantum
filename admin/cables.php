@@ -46,6 +46,45 @@ try {
         ]);
 } catch(Throwable $e){ http_response_code(500); exit('Database error.'); }
 
+if (($_GET['export'] ?? '') === 'csv') {
+    $columns = [
+        'serial_number', 'model_number', 'cable_family', 'length_mm', 'outer_diameter_mm',
+        'connector_a', 'connector_b', 'manufacture_date', 'lot_number', 'batch_id',
+        'batch_number', 'status', 'source_doc_id', 'pdf_file_id', 'internal_source_doc_id',
+        'internal_pdf_file_id', 'notes', 'page_views', 'last_viewed_at', 'updated_at'
+    ];
+    $records = $pdo->query(
+        'SELECT c.serial_number,c.model_number,c.cable_family,c.length_mm,c.outer_diameter_mm,
+                c.connector_a,c.connector_b,c.manufacture_date,c.lot_number,c.batch_id,
+                b.batch_number,c.status,c.source_doc_id,c.pdf_file_id,c.internal_source_doc_id,
+                c.internal_pdf_file_id,c.notes,c.page_views,c.last_viewed_at,c.updated_at,c.public_token
+         FROM pwg_cables c LEFT JOIN pwg_batches b ON b.id=c.batch_id ORDER BY c.id DESC'
+    );
+
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="pwg-cables.csv"');
+    $output = fopen('php://output', 'wb');
+    fwrite($output, "\xEF\xBB\xBF");
+    fputcsv($output, array_merge($columns, ['qr_link']), ',', '"', '');
+    while ($record = $records->fetch()) {
+        $fields = [];
+        foreach ($columns as $column) {
+            $value = (string)($record[$column] ?? '');
+            // Keep spreadsheet apps from interpreting cable text as formulas.
+            if ($column !== 'outer_diameter_mm' && preg_match('/^(?:[\t\r\n]|\s*[=+\-@])/u', $value)) {
+                $value = "'" . $value;
+            }
+            $fields[] = $value;
+        }
+        $fields[] = empty($record['public_token'])
+            ? ''
+            : 'https://pwgquantum.com' . pwg_public_cable_path($record['public_token']);
+        fputcsv($output, $fields, ',', '"', '');
+    }
+    fclose($output);
+    exit;
+}
+
 if (empty($_SESSION['csrf'])) $_SESSION['csrf']=bin2hex(random_bytes(32));
 $csrf=$_SESSION['csrf'];
 $message=''; $error='';
@@ -144,7 +183,7 @@ $statuses=['prototype','testing','passed','failed','shipped'];
 </form></section>
 <section class="panel"><h2>Find Cable by Serial Number</h2>
 <form method="get" action="/cable.php" target="_blank"><label>Serial Number <input name="id" maxlength="32" required></label> <button class="btn btn-secondary">Open Cable</button></form></section>
-<section class="panel"><h2>Recent Cables</h2><div style="overflow:auto"><table class="admin-table"><thead><tr><th>Serial</th><th>Model</th><th>Batch</th><th>Status</th><th>Views</th><th>Last Viewed</th><th>Documents</th><th>Actions</th></tr></thead><tbody>
+<section class="panel"><h2>Recent Cables</h2><a class="btn btn-secondary" href="/admin/cables.php?export=csv">Download All Cables as CSV</a><div style="overflow:auto"><table class="admin-table"><thead><tr><th>Serial</th><th>Model</th><th>Batch</th><th>Status</th><th>Views</th><th>Last Viewed</th><th>Documents</th><th>Actions</th></tr></thead><tbody>
 <?php foreach($rows as $r):?>
 <tr>
 <td><?=h($r['serial_number'])?></td>
