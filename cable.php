@@ -132,6 +132,7 @@ if (!empty($cable['document_url'])) {
         <a class="btn btn-secondary" href="/">PWG Quantum</a>
       </div>
     </div>
+    <?php require __DIR__.'/includes/measurement-panel.php'; ?>
   </div>
 </main>
 <footer class="site-footer">
