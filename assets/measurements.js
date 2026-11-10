@@ -37,11 +37,16 @@
       add('rect', {x: 85, y: 25, width: plotWidth, height: 260}, undefined, clip);
       for (let i = 0; i <= 5; i++) {
         const x = 85 + i * plotWidth / 5;
-        const y = 285 - i * 52;
         add('line', {x1: x, x2: x, y1: 25, y2: 285, stroke: '#e2e7ed'});
-        add('line', {x1: 85, x2: width - 25, y1: y, y2: y, stroke: '#e2e7ed'});
         add('text', {x, y: 308, 'text-anchor': 'middle', 'font-size': 14, fill: '#334155'}, (xRange[0] + i / 5 * (xRange[1] - xRange[0])).toFixed(2));
-        add('text', {x: 75, y: y + 5, 'text-anchor': 'end', 'font-size': 14, fill: '#334155'}, (yRange[0] + i / 5 * (yRange[1] - yRange[0])).toFixed(1));
+
+      }
+      // Keep normal views at 10-unit intervals, with fewer labels for extreme fitted ranges.
+      const tickStep = 10 * Math.max(1, Math.ceil((yRange[1] - yRange[0]) / 1000));
+      for (let value = Math.ceil(yRange[0] / tickStep) * tickStep; value <= yRange[1]; value += tickStep) {
+        const y = yPixel(value);
+        add('line', {x1: 85, x2: width - 25, y1: y, y2: y, stroke: '#e2e7ed'});
+        add('text', {x: 75, y: y + 5, 'text-anchor': 'end', 'font-size': 14, fill: '#334155'}, value.toFixed(0));
       }
       add('text', {x: (85 + width - 25) / 2, y: 333, 'text-anchor': 'middle', 'font-size': 15, fill: '#334155'}, tdr ? 'Time (ns)' : 'Frequency (GHz)');
       add('text', {x: 18, y: 155, transform: 'rotate(-90 18 155)', 'text-anchor': 'middle', 'font-size': 15, fill: '#334155'}, tdr ? 'Impedance (Ω)' : 'Reflection magnitude (dB)');
@@ -94,7 +99,7 @@
       if (!values.length) return;
       const [low, high] = values.reduce((range, value) => [Math.min(range[0], value), Math.max(range[1], value)], [50, 50]);
       const padding = Math.max(1, (high - low) * 0.1);
-      yRange = [low - padding, high + padding]; render();
+      yRange = [Math.floor((low - padding) / 10) * 10, Math.ceil((high + padding) / 10) * 10]; render();
     });
     if (typeof ResizeObserver !== 'undefined') {
       new ResizeObserver(() => {
