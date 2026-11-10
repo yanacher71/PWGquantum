@@ -101,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 function h($value): string { return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8'); }
 ?>
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bulk measurement import</title><link rel="stylesheet" href="/styles.css">
-<style>main{max-width:1050px;margin:100px auto;padding:24px}label{display:block;margin:18px 0}input{display:block;width:100%;padding:10px}table{width:100%;border-collapse:collapse;margin-top:20px}td,th{text-align:left;padding:10px;border-bottom:1px solid #ddd;overflow-wrap:anywhere}.actions{display:flex;gap:12px;flex-wrap:wrap}button:disabled{opacity:.5}#summary{margin:20px 0}</style></head><body><main>
+<style>main{max-width:1050px;margin:100px auto;padding:24px}label{display:block;margin:18px 0}input{display:block;width:100%;padding:10px}table{width:100%;border-collapse:collapse;margin-top:20px}td,th{text-align:left;padding:10px;border-bottom:1px solid #ddd;overflow-wrap:anywhere}.actions{display:flex;gap:12px;flex-wrap:wrap}button:disabled{opacity:.5}#summary{margin:20px 0}.actions [hidden]{display:none!important}</style></head><body><main>
 <a href="/admin/cables.php">Cable Admin</a><h1>Bulk measurement import</h1>
 <p>Choose the parent folder containing the cable folders named by serial number. Each successful import publishes the available measurements and replaces that cable’s previous set and conditions. Empty folders and unchanged measurements are skipped. Failed imports retain existing published measurements.</p>
 <form id="bulk-form"><input type="hidden" name="csrf" value="<?=h($csrf)?>">
