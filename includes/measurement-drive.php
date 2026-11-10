@@ -28,20 +28,26 @@ function pwg_drive_folder_id(string $value): string {
     return $value;
 }
 
-function pwg_drive_measurement_files(string $folder, array $names, array $config): array {
+function pwg_drive_folder_entries(string $folder, array $config): array {
     $folder = pwg_drive_folder_id($folder);
     $files = []; $page = null;
     do {
         $query = ['q'=>"'".$folder."' in parents and trashed = false", 'fields'=>'nextPageToken,files(id,name,size,mimeType)', 'pageSize'=>100];
         if ($page) $query['pageToken'] = $page;
         $response = json_decode(pwg_drive_request('files', $query, $config), true, 512, JSON_THROW_ON_ERROR);
-        foreach ($response['files'] ?? [] as $file) {
-            if (!in_array($file['name'], $names, true)) continue;
-            if (array_key_exists($file['name'], $files)) throw new RuntimeException('Duplicate filenames in Drive folder.');
-            if (($file['mimeType'] ?? '') === 'application/vnd.google-apps.folder' || (int)($file['size'] ?? 0) > 4 * 1024 * 1024) throw new RuntimeException('Invalid measurement file or file exceeds 4 MB.');
-            $files[$file['name']] = (int)($file['size'] ?? 0) === 0 ? '' : pwg_drive_request('files/'.rawurlencode($file['id']), ['alt'=>'media'], $config);
-        }
+        foreach ($response['files'] ?? [] as $file) $files[] = $file;
         $page = $response['nextPageToken'] ?? null;
     } while ($page);
+    return $files;
+}
+
+function pwg_drive_measurement_files(string $folder, array $names, array $config): array {
+    $files = [];
+    foreach (pwg_drive_folder_entries($folder, $config) as $file) {
+        if (!in_array($file['name'], $names, true)) continue;
+        if (array_key_exists($file['name'], $files)) throw new RuntimeException('Duplicate filenames in Drive folder.');
+        if (($file['mimeType'] ?? '') === 'application/vnd.google-apps.folder' || (int)($file['size'] ?? 0) > 4 * 1024 * 1024) throw new RuntimeException('Invalid measurement file or file exceeds 4 MB.');
+        $files[$file['name']] = (int)($file['size'] ?? 0) === 0 ? '' : pwg_drive_request('files/'.rawurlencode($file['id']), ['alt'=>'media'], $config);
+    }
     return $files;
 }

@@ -19,6 +19,14 @@ The ChatGPT Drive connection does not configure the website's server credentials
 
 Enter the individual cable folder and calibration folder URLs or IDs. The importer saves those IDs with the measurement record. Files must have the exact names above and be direct children of the selected folders. Duplicate filenames are rejected. Re-import after changing source measurements. Customer visits do not contact Google Drive.
 
+## Bulk import
+
+Choose **Bulk measurement import** in Cable Admin and enter the parent CABLETESTS folder URL. The importer matches direct child folders to existing cable serial numbers, reads each folder's measurement_conditions.txt, and automatically finds the shared calibration folder. An optional calibration folder URL overrides automatic discovery.
+
+The page imports one cable per request and reports imported, skipped or failed results. Keep the page open through completion. Pause stops after the current cable, and Resume continues the same queue. A network interruption can be retried with Resume. Each run snapshots the shared calibration once. An expired session requires a new scan.
+
+Zero-byte placeholders and unchanged records are skipped. Successful imports replace the entire published measurement set and conditions for that cable. Failed imports retain the previous record. Duplicate serial folders are rejected, and folders without matching database records are skipped. Only available measurements are published, so replacing a populated source file with an empty file removes that plot on a subsequent successful import that has other populated measurements. Entirely empty folders never erase existing records.
+
 ## Conversion and presentation
 
 TDR uses the mean of each reference over 0.6–1.8 ns. The load must agree with the open/short midpoint within 2% of the open/load span. With `span = Vopen - V50`, `rho = (V - V50) / span` and `Z = 50 * (1 + rho) / (1 - rho)`. Singular open-circuit points are gaps. This constant normalization assumes the references apply to the cable acquisition. It does not perform full fixture de-embedding or loss compensation. The raw reference files, voltage levels and averaging interval are retained with each import.

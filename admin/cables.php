@@ -159,7 +159,7 @@ $statuses=['prototype','testing','passed','failed','shipped'];
 .notice{padding:12px;border:1px solid #ccd5df;border-radius:6px;margin:15px 0}@media(max-width:700px){.form-grid{grid-template-columns:1fr}}
 </style></head><body><main class="admin-wrap">
 <div class="admin-top"><div><h1>PWG Cable Admin</h1><p>Create and edit cable records.</p></div>
-<div style="display:flex;gap:10px"><a class="btn btn-secondary" href="/admin/batches.php">Batch Admin</a><form method="post"><button class="btn btn-secondary" name="logout" value="1">Sign out</button></form></div></div>
+<div style="display:flex;gap:10px"><a class="btn btn-secondary" href="/admin/bulk-measurements.php">Bulk measurement import</a><a class="btn btn-secondary" href="/admin/batches.php">Batch Admin</a><form method="post"><button class="btn btn-secondary" name="logout" value="1">Sign out</button></form></div></div>
 <?php if($message):?><div class="notice"><?=h($message)?></div><?php endif;?><?php if($error):?><div class="notice"><?=h($error)?></div><?php endif;?>
 <section class="panel"><h2><?= $duplicateNew?'New Cable (duplicate)':($edit?'Edit '.h($edit['serial_number']):'New Cable') ?></h2>
 <button class="btn btn-secondary" type="button" id="duplicate-previous" data-cable="<?=h(json_encode($previousCable, JSON_THROW_ON_ERROR))?>" <?=$previousCable?'':'disabled'?>>Duplicate previous cable</button>
