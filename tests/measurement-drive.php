@@ -4,6 +4,7 @@ declare(strict_types=1);
 if (extension_loaded('curl')) throw new RuntimeException('Run this test with php -n.');
 foreach (['CURLOPT_HTTPHEADER','CURLOPT_CONNECTTIMEOUT','CURLOPT_TIMEOUT','CURLOPT_FOLLOWLOCATION','CURLOPT_WRITEFUNCTION','CURLINFO_HTTP_CODE'] as $index=>$name) define($name, $index+1);
 $responses = []; $requests = [];
+if (!extension_loaded('curl')) {
 function curl_init(string $url): object { return (object)['url'=>$url]; }
 function curl_setopt_array(object $handle, array $options): void { $handle->options = $options; }
 function curl_exec(object $handle): bool {
@@ -18,6 +19,7 @@ function curl_exec(object $handle): bool {
 function curl_getinfo(object $handle, int $option): int { return $handle->response['status']; }
 function curl_errno(object $handle): int { return $handle->response['network'] ?? 0; }
 function curl_close(object $handle): void {}
+}
 require_once dirname(__DIR__).'/includes/measurement-drive.php';
 function check(bool $ok, string $message): void { if (!$ok) throw new RuntimeException($message); }
 $config = ['google_drive_api_key'=>'private-test-key'];
