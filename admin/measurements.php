@@ -31,31 +31,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $folder = trim((string)($_POST['folder'] ?? ''));
         $calFolder = trim((string)($_POST['calibration_folder'] ?? ''));
         $conditions = trim((string)($_POST['conditions'] ?? ''));
-        if ($conditions === '' || strlen($conditions) > 2000) throw new RuntimeException('Describe the measurement conditions in 1–2000 characters.');
-        $raw = []; $calibration = [];
-        if (($_POST['method'] ?? '') === 'drive') {
+        $method = (string)($_POST['method'] ?? '');
+        if ($method === 'load_conditions') {
             $folder = pwg_drive_folder_id($folder);
-            $raw = pwg_drive_measurement_files($folder, ['tdr.txt','s11.s1p','s22.s1p'], $config);
-            if (trim($raw['tdr.txt'] ?? '') !== '') {
-                $calFolder = pwg_drive_folder_id($calFolder);
-                $calibration = pwg_drive_measurement_files($calFolder, ['50ohms.txt','open.txt','short.txt'], $config);
-            }
+            $files = pwg_drive_measurement_files($folder, ['measurement_conditions.txt'], $config);
+            $loadedConditions = trim(preg_replace('/^\xEF\xBB\xBF/', '', $files['measurement_conditions.txt'] ?? ''));
+            if ($loadedConditions === '' || strlen($loadedConditions) > 2000) throw new RuntimeException('measurement_conditions.txt must contain 1–2000 bytes of text.');
+            $conditions = $loadedConditions;
+            $message = 'Measurement conditions loaded. Review the text before importing.';
         } else {
-            foreach (['tdr'=>'tdr.txt','s11'=>'s11.s1p','s22'=>'s22.s1p','load'=>'50ohms.txt','open'=>'open.txt','short'=>'short.txt'] as $field=>$name) {
-                $file = $_FILES[$field] ?? null;
-                if (!$file || $file['error'] === UPLOAD_ERR_NO_FILE) continue;
-                if ($file['error'] !== UPLOAD_ERR_OK || $file['size'] > 4 * 1024 * 1024 || !is_uploaded_file($file['tmp_name'])) throw new RuntimeException('Upload failed or file exceeds 4 MB.');
-                $text = file_get_contents($file['tmp_name']);
-                if ($text === false) throw new RuntimeException('Could not read uploaded file.');
-                if (in_array($field, ['load','open','short'], true)) $calibration[$name] = $text;
-                else $raw[$name] = $text;
+            $raw = []; $calibration = [];
+            if (($_POST['method'] ?? '') === 'drive') {
+                $folder = pwg_drive_folder_id($folder);
+                $raw = pwg_drive_measurement_files($folder, ['tdr.txt','s11.s1p','s22.s1p','measurement_conditions.txt'], $config);
+                if ($conditions === '') $conditions = trim(preg_replace('/^\xEF\xBB\xBF/', '', $raw['measurement_conditions.txt'] ?? ''));
+                if (trim($raw['tdr.txt'] ?? '') !== '') {
+                    $calFolder = pwg_drive_folder_id($calFolder);
+                    $calibration = pwg_drive_measurement_files($calFolder, ['50ohms.txt','open.txt','short.txt'], $config);
+                }
+            } else {
+                foreach (['tdr'=>'tdr.txt','s11'=>'s11.s1p','s22'=>'s22.s1p','load'=>'50ohms.txt','open'=>'open.txt','short'=>'short.txt'] as $field=>$name) {
+                    $file = $_FILES[$field] ?? null;
+                    if (!$file || $file['error'] === UPLOAD_ERR_NO_FILE) continue;
+                    if ($file['error'] !== UPLOAD_ERR_OK || $file['size'] > 4 * 1024 * 1024 || !is_uploaded_file($file['tmp_name'])) throw new RuntimeException('Upload failed or file exceeds 4 MB.');
+                    $text = file_get_contents($file['tmp_name']);
+                    if ($text === false) throw new RuntimeException('Could not read uploaded file.');
+                    if (in_array($field, ['load','open','short'], true)) $calibration[$name] = $text;
+                    else $raw[$name] = $text;
+                }
+                $folder = $folder === '' ? '' : pwg_drive_folder_id($folder);
+                $calFolder = $calFolder === '' ? '' : pwg_drive_folder_id($calFolder);
             }
-            $folder = $folder === '' ? '' : pwg_drive_folder_id($folder);
-            $calFolder = $calFolder === '' ? '' : pwg_drive_folder_id($calFolder);
+            if ($conditions === '' || strlen($conditions) > 2000) throw new RuntimeException('Enter measurement conditions or provide measurement_conditions.txt with 1–2000 bytes of text.');
+            $record = pwg_measurement_build($raw, $calibration, ['drive_folder_id'=>$folder, 'calibration_folder_id'=>$calFolder, 'conditions'=>$conditions]);
+            pwg_measurement_save($serial, $record);
+            $message = 'Measurements imported and published on this cable’s QR page.';
         }
-        $record = pwg_measurement_build($raw, $calibration, ['drive_folder_id'=>$folder, 'calibration_folder_id'=>$calFolder, 'conditions'=>$conditions]);
-        pwg_measurement_save($serial, $record);
-        $message = 'Measurements imported and published on this cable’s QR page.';
     } catch (Throwable $e) { $error = $e->getMessage(); }
 }
 function h($v): string { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
@@ -67,8 +78,10 @@ function h($v): string { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'
 <?php if($record):?><p>Last import <?=h($record['imported_at'])?>. Available plots <?=h(implode(', ', array_keys($record['plots'])))?>.</p><?php endif;?>
 <p>Importing replaces the complete published measurement set. Empty files mean not measured. Check the selected files belong to <?=h($serial)?>.</p>
 <form method="post" enctype="multipart/form-data"><input type="hidden" name="csrf" value="<?=h($csrf)?>">
-<label>Measurement conditions<textarea name="conditions" maxlength="2000" required placeholder="Measurement date, cable end assignments, reference plane, cable-only window or connectors included, and calibration applicability"><?=h($conditions)?></textarea></label>
+<label>Measurement conditions<textarea name="conditions" maxlength="2000" placeholder="Measurement date, cable end assignments, reference plane, cable-only window or connectors included, and calibration applicability"><?=h($conditions)?></textarea></label>
 <label>Cable Drive folder ID or URL<input name="folder" value="<?=h($folder)?>"></label>
+<button class="btn btn-secondary" name="method" value="load_conditions" formnovalidate>Load measurement conditions from Drive</button>
+<p>Reads measurement_conditions.txt from the cable folder into the field above. You can edit it before importing. A Drive import also reads this file automatically when the field is empty.</p>
 <label>Calibration Drive folder ID or URL<input name="calibration_folder" value="<?=h($calFolder)?>"></label>
 <fieldset><legend>Import from Drive</legend><p>Uses server credentials from pwg-db-config.php. Expected filenames are tdr.txt, s11.s1p and s22.s1p. TDR requires 50ohms.txt, open.txt and short.txt in the calibration folder.</p><button class="btn btn-primary" name="method" value="drive">Import measurements from Drive</button></fieldset>
 <fieldset><legend>Upload measurement files</legend>
