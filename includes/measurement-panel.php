@@ -25,4 +25,4 @@ $measurementSelector = !empty($cable['public_token']) ? ['token'=>$cable['public
   <?php endforeach;?></div>
   <script type="application/json" id="measurement-data"><?=json_encode($measurement['plots'], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_THROW_ON_ERROR)?></script>
 </section>
-<link rel="stylesheet" href="/assets/measurements.css"><script src="/assets/measurements.js" defer></script>
+<link rel="stylesheet" href="/assets/measurements.css"><script src="/assets/measurements.js?v=<?=h((string)filemtime(dirname(__DIR__).'/assets/measurements.js'))?>" defer></script>
