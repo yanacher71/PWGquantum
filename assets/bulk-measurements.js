@@ -75,6 +75,10 @@
     event.preventDefault();
     start.disabled = true;
     resume.hidden = true;
+    job = null;
+    rows = [];
+    cursor = 0;
+    displayRows();
     summary.textContent = 'Reading cable folders and shared calibration…';
     try {
       const result = await request({action: 'scan', parent: form.elements.parent.value, calibration: form.elements.calibration.value});
@@ -88,6 +92,10 @@
     } catch (error) {
       summary.textContent = error.message;
       start.disabled = false;
+      pause.disabled = true;
+      resume.hidden = true;
+      form.elements.parent.disabled = false;
+      form.elements.calibration.disabled = false;
     }
   });
   pause.addEventListener('click', () => { paused = true; pause.disabled = true; summary.textContent = 'Pausing after the current cable finishes…'; });

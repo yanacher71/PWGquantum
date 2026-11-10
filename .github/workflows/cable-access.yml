@@ -24,3 +24,6 @@ jobs:
         run: php tests/measurements.php
       - name: Bulk measurement import tests
         run: php tests/measurement-bulk.php
+
+      - name: Drive pagination and retry tests
+        run: php -n tests/measurement-drive.php
