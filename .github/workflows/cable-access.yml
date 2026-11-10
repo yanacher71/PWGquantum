@@ -22,3 +22,5 @@ jobs:
 
       - name: Measurement parser and calibration tests
         run: php tests/measurements.php
+      - name: Bulk measurement import tests
+        run: php tests/measurement-bulk.php
