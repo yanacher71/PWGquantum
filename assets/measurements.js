@@ -3,13 +3,45 @@
   const source = document.getElementById('measurement-data');
   if (!source) return;
   const data = JSON.parse(source.textContent);
+  function slopeCompensate(points) {
+    const start = points[0][0];
+    const end = points[points.length - 1][0];
+    const fitStart = start + (end - start) * 0.1;
+    const fitEnd = end - (end - start) * 0.1;
+    const fitPoints = points.filter(([x, y]) => x >= fitStart && x <= fitEnd && Number.isFinite(y));
+    if (fitPoints.length < 3) return null;
+    const meanX = fitPoints.reduce((sum, p) => sum + p[0], 0) / fitPoints.length;
+    const meanY = fitPoints.reduce((sum, p) => sum + p[1], 0) / fitPoints.length;
+    let covariance = 0;
+    let variance = 0;
+    for (const [x, y] of fitPoints) {
+      covariance += (x - meanX) * (y - meanY);
+      variance += (x - meanX) ** 2;
+    }
+    if (variance === 0) return null;
+    const slope = covariance / variance;
+    return {
+      slope, fitStart, fitEnd,
+      points: points.map(([x, y]) => [x, Number.isFinite(y) ? y - slope * (x - fitStart) : null])
+    };
+  }
   const namespace = 'http://www.w3.org/2000/svg';
   for (const panel of document.querySelectorAll('.measurement-chart')) {
     const svg = panel.querySelector('svg');
     const readout = panel.querySelector('.measurement-readout');
     const tdr = panel.dataset.kind === 'tdr';
-    const series = tdr ? [{name: 'TDR', color: '#1262b5', points: data.tdr}] :
+    const series = tdr ? [{name: 'Measured TDR', color: '#1262b5', points: data.tdr}] :
       ['s11', 's22'].filter(key => data[key]).map(key => ({name: key.toUpperCase(), color: key === 's11' ? '#1262b5' : '#b45506', points: data[key]}));
+    if (tdr) {
+      const compensated = slopeCompensate(data.tdr);
+      const fitNote = panel.querySelector('[data-tdr-fit]');
+      if (compensated) {
+        series.push({name: 'Slope-compensated TDR', color: '#b45506', points: compensated.points});
+        fitNote.textContent = `Fitted slope ${compensated.slope.toFixed(3)} Ω/ns over ${compensated.fitStart.toFixed(3)}–${compensated.fitEnd.toFixed(3)} ns. Correction is anchored at the start of that interval and stays fixed when zooming.`;
+      } else {
+        fitNote.textContent = 'Slope compensation is unavailable because too few finite samples lie in the central 80% of this trace.';
+      }
+    }
     const points = series.flatMap(line => line.points);
     const extent = points.reduce((range, p) => [Math.min(range[0], p[0]), Math.max(range[1], p[0])], [Infinity, -Infinity]);
     let xRange = [...extent];
