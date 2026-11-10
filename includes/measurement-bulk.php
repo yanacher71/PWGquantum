@@ -45,3 +45,10 @@ function pwg_bulk_unchanged(array $existing, array $record): bool {
     // Normalize JSON's integer/float representation used by persisted plot samples.
     return json_encode($existing, JSON_THROW_ON_ERROR) === json_encode($record, JSON_THROW_ON_ERROR);
 }
+
+function pwg_bulk_has_measurements(array $entries): bool {
+    foreach ($entries as $file) {
+        if (in_array($file['name'], ['tdr.txt','s11.s1p','s22.s1p'], true) && (int)($file['size'] ?? 0) > 0) return true;
+    }
+    return false;
+}

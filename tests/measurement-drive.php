@@ -58,4 +58,21 @@ catch (RuntimeException $e) { check($responses === [] && str_contains($e->getMes
 $responses = [['status'=>403], ['status'=>200, 'type'=>'text/html', 'body'=>'<html>Sign in</html>']];
 try { pwg_drive_request('files/test-file', ['alt'=>'media'], $config); throw new LogicException('Expected HTML rejection.'); }
 catch (RuntimeException $e) { check(str_contains($e->getMessage(), 'both the Drive API'), 'HTML error pages rejected'); }
+$folders = [];
+for ($i=0; $i<100; $i++) $folders[] = 'cable-folder-'.str_pad((string)$i,3,'0',STR_PAD_LEFT);
+$before = count($requests);
+$responses = array_fill(0, 5, ['status'=>200, 'body'=>json_encode(['files'=>[]])]);
+$metadata = pwg_drive_bulk_entries($folders, $config);
+check(count($metadata) === 100 && count($requests)-$before === 5, '100 empty folders checked in five requests');
+$responses = [
+    ['status'=>200,'body'=>json_encode(['files'=>[], 'nextPageToken'=>'more'])],
+    ['status'=>200,'body'=>json_encode(['files'=>[['id'=>'data-file','name'=>'tdr.txt','size'=>'123','parents'=>[$folders[0]]]]])],
+    ['status'=>200,'body'=>json_encode(['files'=>[]])]
+];
+$metadata = pwg_drive_bulk_entries(array_slice($folders,0,21), $config);
+check(count($metadata[$folders[0]]) === 1 && $metadata[$folders[20]] === [], 'Batch pagination routes files to correct folders');
+$before = count($requests);
+$responses = [['status'=>200,'body'=>'waveform bytes']];
+$download = pwg_drive_measurement_files($folders[0], ['tdr.txt'], $config, $metadata[$folders[0]]);
+check($download['tdr.txt'] === 'waveform bytes' && count($requests)-$before === 1, 'Reuse metadata without another folder listing');
 echo "Drive pagination, retry and diagnostic tests passed.\n";

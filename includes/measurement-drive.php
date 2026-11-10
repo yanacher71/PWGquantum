@@ -99,13 +99,38 @@ function pwg_drive_folder_entries(string $folder, array $config): array {
     return $files;
 }
 
-function pwg_drive_measurement_files(string $folder, array $names, array $config): array {
+function pwg_drive_measurement_files(string $folder, array $names, array $config, ?array $entries = null): array {
     $files = [];
-    foreach (pwg_drive_folder_entries($folder, $config) as $file) {
+    foreach ($entries ?? pwg_drive_folder_entries($folder, $config) as $file) {
         if (!in_array($file['name'], $names, true)) continue;
         if (array_key_exists($file['name'], $files)) throw new RuntimeException('Duplicate filenames in Drive folder.');
         if (($file['mimeType'] ?? '') === 'application/vnd.google-apps.folder' || (int)($file['size'] ?? 0) > 4 * 1024 * 1024) throw new RuntimeException('Invalid measurement file or file exceeds 4 MB.');
         $files[$file['name']] = (int)($file['size'] ?? 0) === 0 ? '' : pwg_drive_request('files/'.rawurlencode($file['id']), ['alt'=>'media'], $config, 'Download '.$file['name'].' from folder '.$folder);
     }
     return $files;
+}
+
+/** Read file metadata for twenty cable folders per request, without downloading contents. */
+function pwg_drive_bulk_entries(array $folders, array $config): array {
+    $result = [];
+    foreach ($folders as $folder) $result[pwg_drive_folder_id($folder)] = [];
+    foreach (array_chunk(array_keys($result), 20) as $batch) {
+        $parents = array_map(static fn($folder) => "'".$folder."' in parents", $batch);
+        $names = array_map(static fn($name) => "name = '".$name."'", ['tdr.txt','s11.s1p','s22.s1p','measurement_conditions.txt']);
+        $page = null; $pageNumber = 1;
+        do {
+            $query = ['q'=>'trashed = false and ('.implode(' or ', $parents).') and ('.implode(' or ', $names).')',
+                'fields'=>'nextPageToken,files(id,name,size,mimeType,parents)', 'pageSize'=>100];
+            if ($page) $query['pageToken'] = $page;
+            $response = json_decode(pwg_drive_request('files', $query, $config, 'Check cable folder batch, page '.$pageNumber), true, 512, JSON_THROW_ON_ERROR);
+            foreach ($response['files'] ?? [] as $file) {
+                foreach ($file['parents'] ?? [] as $parent) {
+                    if (in_array($parent, $batch, true)) $result[$parent][] = $file;
+                }
+            }
+            $page = $response['nextPageToken'] ?? null;
+            $pageNumber++;
+        } while ($page);
+    }
+    return $result;
 }

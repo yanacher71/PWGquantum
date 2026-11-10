@@ -31,4 +31,7 @@ foreach (['', str_repeat('x',2001)] as $bad) {
     try { pwg_bulk_record($files, [], []); } catch (RuntimeException $e) { $rejected = true; }
     check($rejected, 'Reject missing or oversized conditions');
 }
+check(!pwg_bulk_has_measurements([['name'=>'tdr.txt','size'=>'0'], ['name'=>'measurement_conditions.txt','size'=>'63']]), 'Conditions alone do not count as measurements');
+check(pwg_bulk_has_measurements([['name'=>'s11.s1p','size'=>'100']]), 'Populated S-parameter file counts as measured');
+check(!pwg_bulk_has_measurements([]), 'Missing measurement files are empty');
 echo "Bulk measurement matching and record tests passed.\n";
