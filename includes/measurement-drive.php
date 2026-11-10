@@ -38,11 +38,45 @@ function pwg_drive_request(string $path, array $query, array $config, string $co
             usleep(250000 * (2 ** $attempt));
             continue;
         }
+        if ($status === 403 && ($query['alt'] ?? '') === 'media'
+            && empty($config['google_drive_access_token']) && !empty($config['google_drive_api_key'])
+            && str_starts_with($path, 'files/')) {
+            return pwg_drive_public_download(rawurldecode(substr($path, 6)), $context);
+        }
         $details = 'HTTP '.$status.($reason !== '' ? ', '.$reason : '');
         if ($networkError !== 0) $details .= ', network error '.$networkError;
         throw new RuntimeException($context.' failed ('.$details.'). Check folder sharing and server credentials, or retry if the service is temporarily unavailable.');
     }
     throw new RuntimeException($context.' failed.');
+}
+
+/** Public-file fallback carries neither an API key nor an OAuth token. */
+function pwg_drive_public_download(string $fileId, string $context): string {
+    if (!preg_match('/\\A[A-Za-z0-9_-]{1,128}\\z/D', $fileId)) throw new RuntimeException('Invalid Drive file ID.');
+    $handle = curl_init('https://drive.google.com/uc?'.http_build_query(['export'=>'download', 'id'=>$fileId]));
+    $body = ''; $tooLarge = false;
+    curl_setopt_array($handle, [
+        CURLOPT_CONNECTTIMEOUT=>10, CURLOPT_TIMEOUT=>30, CURLOPT_FOLLOWLOCATION=>true,
+        CURLOPT_MAXREDIRS=>3, CURLOPT_PROTOCOLS=>CURLPROTO_HTTPS, CURLOPT_REDIR_PROTOCOLS=>CURLPROTO_HTTPS,
+        CURLOPT_WRITEFUNCTION=>static function ($handle, string $chunk) use (&$body, &$tooLarge): int {
+            if (strlen($body) + strlen($chunk) > 4 * 1024 * 1024) {
+                $tooLarge = true;
+                return 0;
+            }
+            $body .= $chunk;
+            return strlen($chunk);
+        }
+    ]);
+    $ok = curl_exec($handle);
+    $status = (int)curl_getinfo($handle, CURLINFO_HTTP_CODE);
+    $contentType = (string)curl_getinfo($handle, CURLINFO_CONTENT_TYPE);
+    curl_close($handle);
+    if ($tooLarge) throw new RuntimeException($context.': public download exceeds 4 MB.');
+    if ($ok === false || $status !== 200 || stripos($contentType, 'text/html') !== false
+        || preg_match('/^\\s*<(?:!doctype\\s+html|html)\\b/i', $body)) {
+        throw new RuntimeException($context.' failed through both the Drive API (HTTP 403) and public download (HTTP '.$status.'). Confirm this file allows public downloads.');
+    }
+    return $body;
 }
 
 function pwg_drive_folder_id(string $value): string {
