@@ -208,7 +208,8 @@ $statuses=['prototype','testing','passed','failed','shipped'];
 <?php endif;?>
 </td>
 <td>
-<a href="/admin/cables.php?edit=<?=rawurlencode($r['serial_number'])?>">Edit</a>
+<a href="/admin/measurements.php?id=<?=rawurlencode($r['serial_number'])?>">Measurements</a>
+&nbsp;|&nbsp; <a href="/admin/cables.php?edit=<?=rawurlencode($r['serial_number'])?>">Edit</a>
 &nbsp;|&nbsp; <a href="/cable.php?id=<?=rawurlencode($r['serial_number'])?>" target="_blank">Cable Page</a>
 <?php if (!empty($r['public_token'])): ?>
 &nbsp;|&nbsp; <a href="<?=h(pwg_public_cable_path($r['public_token']))?>" target="_blank" rel="noreferrer">Public QR Link</a>
