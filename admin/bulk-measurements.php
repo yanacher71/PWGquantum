@@ -35,13 +35,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $calFolder = $matches[0]['id'] ?? '';
             }
             $calibration = [];
-            if ($calFolder !== '') {
-                $calFolder = pwg_drive_folder_id($calFolder);
-                $calibration = pwg_drive_measurement_files($calFolder, ['50ohms.txt','open.txt','short.txt'], $config);
-            }
+            if ($calFolder !== '') $calFolder = pwg_drive_folder_id($calFolder);
             $pdo = new PDO('mysql:host='.$config['host'].';dbname='.$config['database'].';charset=utf8mb4', $config['username'], $config['password'], [PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
             $serials = $pdo->query('SELECT serial_number FROM pwg_cables')->fetchAll(PDO::FETCH_COLUMN);
             $rows = pwg_bulk_plan($entries, $serials);
+            $queuedFolders = array_column(array_filter($rows, static fn($row) => $row['status'] === 'queued'), 'folder');
+            $metadata = pwg_drive_bulk_entries($queuedFolders, $config);
+            $needsCalibration = false;
+            foreach ($rows as &$row) {
+                if ($row['status'] !== 'queued') continue;
+                $row['entries'] = $metadata[$row['folder']];
+                if (!pwg_bulk_has_measurements($row['entries'])) {
+                    $row['status'] = 'skipped';
+                    $row['message'] = 'No nonempty measurements.';
+                }
+                foreach ($row['entries'] as $file) {
+                    if ($file['name'] === 'tdr.txt' && (int)($file['size'] ?? 0) > 0) $needsCalibration = true;
+                }
+            }
+            unset($row);
+            if ($needsCalibration && $calFolder !== '') {
+                $calibration = pwg_drive_measurement_files($calFolder, ['50ohms.txt','open.txt','short.txt'], $config);
+            }
             $jobId = bin2hex(random_bytes(16));
             session_start();
             $_SESSION['measurement_bulk'] = ['id'=>$jobId, 'expires'=>time()+3600, 'parent'=>$parent, 'calibration_folder'=>$calFolder, 'calibration'=>$calibration, 'rows'=>$rows];
@@ -71,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $pdo->prepare('SELECT serial_number FROM pwg_cables WHERE serial_number=? LIMIT 1');
             $stmt->execute([$row['serial']]);
             if (!$stmt->fetchColumn()) throw new RuntimeException('Cable record no longer exists.');
-            $files = pwg_drive_measurement_files($row['folder'], ['tdr.txt','s11.s1p','s22.s1p','measurement_conditions.txt'], $config);
+            $files = pwg_drive_measurement_files($row['folder'], ['tdr.txt','s11.s1p','s22.s1p','measurement_conditions.txt'], $config, $row['entries'] ?? null);
             $record = pwg_bulk_record($files, $job['calibration'], ['drive_folder_id'=>$row['folder'], 'calibration_folder_id'=>$job['calibration_folder']]);
             $existing = pwg_measurement_read($row['serial']);
             if ($record === null) {
