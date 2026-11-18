@@ -1,5 +1,9 @@
 RewriteEngine On
 
+# Redirect the www hostname to the canonical HTTPS hostname.
+RewriteCond %{HTTP_HOST} ^www\.pwgquantum\.com(?::[0-9]+)?$ [NC]
+RewriteRule ^ https://pwgquantum.com%{REQUEST_URI} [R=301,L,NE]
+
 # Public capability URLs. Do not append user-supplied query parameters.
 RewriteRule ^c/([a-f0-9]{32})/report/?$ report.php?token=$1 [END]
 RewriteRule ^c/([a-f0-9]{32})/?$ cable.php?token=$1 [END]
