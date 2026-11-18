@@ -12,7 +12,12 @@ $measurementSelector = !empty($cable['public_token']) ? ['token'=>$cable['public
   <?php if(isset($measurement['plots']['tdr'])):?>
   <div class="measurement-chart" data-kind="tdr"><h3>TDR impedance</h3><p><span class="legend-s11">● Measured TDR</span> &nbsp; <span class="legend-s22">● Slope-compensated TDR</span></p><p>Drag across the plot to zoom in time. Hover or touch for values.</p>
     <button type="button" data-action="reset">Reset view</button> <button type="button" data-action="fit">Fit impedance range</button>
-    <svg viewBox="0 0 900 340" role="img" aria-label="Measured and slope-compensated TDR impedance in ohms versus time in nanoseconds"></svg><p class="measurement-readout" aria-live="polite"></p>
+    <div class="measurement-distance-controls">
+      <label>Velocity factor <input type="number" data-velocity-factor min="0.01" max="1" step="any" value="0.70" required></label>
+      <label>Cable start (ns) <input type="number" data-distance-zero step="any" value="0" required></label>
+    </div>
+    <p class="measurement-note">Approximate distance = (time − cable start) × 299.792458 × velocity factor ÷ 2 mm. The factor of 2 accounts for the reflected signal’s round trip. Set the cable start to its entrance time; the default velocity factor 0.70 is an estimate. These display settings apply only to this page visit.</p>
+    <svg viewBox="0 0 900 385" role="img" aria-label="Measured and slope-compensated TDR impedance in ohms versus time in nanoseconds and approximate distance in millimeters"></svg><p class="measurement-readout" aria-live="polite"></p>
     <p class="measurement-note" data-tdr-fit></p>
     <p class="measurement-note">Slope compensation removes a linear fit over the central 80% of the recorded time range, excluding 10% at each end. It assumes a uniform cable and also removes any genuine linear impedance taper.</p>
     <p class="measurement-note">50 Ω reference shown dashed. Constant open/load calibration, averaged over 0.6–1.8 ns. Values beyond that calibration interval assume stable reference levels. Resistive loss can contribute to the impedance slope.</p>

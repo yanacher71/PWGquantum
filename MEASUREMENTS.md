@@ -34,3 +34,5 @@ TDR uses the mean of each reference over 0.6–1.8 ns. The load must agree with 
 Customer plots use a common initial TDR range of 30–70 ohms, a dashed 50 ohm line, drag-to-zoom and an impedance fit button. Reflection plots use a common −80–0 dB range with measured points. Hover/touch shows actual values. Files outside those display ranges remain in the downloads. The original S22 filename identifies the opposite cable end even though a one-port instrument export labels its internal parameter S11.
 
 Both the page and raw-file endpoint require the existing public cable token or an authenticated admin serial lookup. Measurement files and references are not committed to the repository.
+
+TDR charts also show an approximate millimeter axis and distance in the hover readout. Distance is `(time_ns - cable_start_ns) * 299.792458 * velocity_factor / 2`, accounting for reflection round-trip time. Visitors can adjust the estimated velocity factor (default 0.70) and cable-start reference time (default 0 ns); settings last only for that page visit. Both axes follow the same zoom. No distance calibration or automatic entrance detection is implied.

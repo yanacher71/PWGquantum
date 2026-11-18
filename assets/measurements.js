@@ -30,6 +30,10 @@
     const svg = panel.querySelector('svg');
     const readout = panel.querySelector('.measurement-readout');
     const tdr = panel.dataset.kind === 'tdr';
+    let velocityFactor = 0.70;
+    let distanceZeroNs = 0;
+    const distanceMm = ns => (ns - distanceZeroNs) * 299.792458 * velocityFactor / 2;
+    let drawingRoot = svg;
     const series = tdr ? [{name: 'Measured TDR', color: '#1262b5', points: data.tdr}] :
       ['s11', 's22'].filter(key => data[key]).map(key => ({name: key.toUpperCase(), color: key === 's11' ? '#1262b5' : '#b45506', points: data[key]}));
     if (tdr) {
@@ -49,7 +53,7 @@
     let dragStart = null;
     let width = Math.max(360, panel.getBoundingClientRect().width);
     let plotWidth = width - 110;
-    function add(tag, attributes, text, parent = svg) {
+    function add(tag, attributes, text, parent = drawingRoot) {
       const element = document.createElementNS(namespace, tag);
       for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, value);
       if (text !== undefined) element.textContent = text;
@@ -61,14 +65,18 @@
     function render() {
       width = Math.max(360, panel.getBoundingClientRect().width);
       plotWidth = width - 110;
-      svg.setAttribute('viewBox', `0 0 ${width} 340`);
+      svg.setAttribute('viewBox', `0 0 ${width} ${tdr ? 385 : 340}`);
       svg.replaceChildren();
+      drawingRoot = svg;
+      if (tdr) drawingRoot = add('g', {transform: 'translate(0 45)'});
+      if (tdr) add('text', {x: (85 + width - 25) / 2, y: -28, 'text-anchor': 'middle', 'font-size': 15, fill: '#334155'}, 'Approx. distance (mm)');
       const clipId = 'clip-' + panel.dataset.kind;
       const defs = add('defs', {});
       const clip = add('clipPath', {id: clipId}, undefined, defs);
       add('rect', {x: 85, y: 25, width: plotWidth, height: 260}, undefined, clip);
       for (let i = 0; i <= 5; i++) {
         const x = 85 + i * plotWidth / 5;
+        if (tdr) add('text', {x, y: -7, 'text-anchor': 'middle', 'font-size': 14, fill: '#334155'}, distanceMm(xRange[0] + i / 5 * (xRange[1] - xRange[0])).toFixed(1));
         add('line', {x1: x, x2: x, y1: 25, y2: 285, stroke: '#e2e7ed'});
         add('text', {x, y: 308, 'text-anchor': 'middle', 'font-size': 14, fill: '#334155'}, (xRange[0] + i / 5 * (xRange[1] - xRange[0])).toFixed(2));
 
@@ -110,7 +118,7 @@
       const x = valueAt(position(event));
       readout.textContent = series.map(line => {
         const nearest = line.points.reduce((best, p) => Math.abs(p[0] - x) < Math.abs(best[0] - x) ? p : best);
-        return `${line.name} · ${nearest[0].toFixed(3)} ${tdr ? 'ns' : 'GHz'} · ${nearest[1] === null ? 'undefined' : nearest[1].toFixed(2)} ${tdr ? 'Ω' : 'dB'}`;
+        return `${line.name} · ${nearest[0].toFixed(3)} ${tdr ? 'ns · ' + distanceMm(nearest[0]).toFixed(1) + ' mm' : 'GHz'} · ${nearest[1] === null ? 'undefined' : nearest[1].toFixed(2)} ${tdr ? 'Ω' : 'dB'}`;
       }).join('   |   ');
     });
     svg.addEventListener('pointerdown', event => { dragStart = position(event); svg.setPointerCapture(event.pointerId); });
@@ -133,6 +141,19 @@
       const padding = Math.max(1, (high - low) * 0.1);
       yRange = [Math.floor((low - padding) / 10) * 10, Math.ceil((high + padding) / 10) * 10]; render();
     });
+    if (tdr) {
+      const velocityInput = panel.querySelector('[data-velocity-factor]');
+      const zeroInput = panel.querySelector('[data-distance-zero]');
+      const updateDistance = () => {
+        if (!velocityInput.checkValidity() || !zeroInput.checkValidity()) return;
+        const vf = Number(velocityInput.value);
+        const zero = Number(zeroInput.value);
+        if (!Number.isFinite(vf) || vf <= 0 || vf > 1 || !Number.isFinite(zero)) return;
+        velocityFactor = vf; distanceZeroNs = zero; render();
+      };
+      velocityInput.addEventListener('input', updateDistance);
+      zeroInput.addEventListener('input', updateDistance);
+    }
     if (typeof ResizeObserver !== 'undefined') {
       new ResizeObserver(() => {
         if (Math.abs(Math.max(360, panel.getBoundingClientRect().width) - width) > 1) render();
