@@ -45,10 +45,12 @@
         fitNote.textContent = 'Slope compensation is unavailable because too few finite samples lie in the central 80% of this trace.';
       }
     }
-    const visibleSeries = () => compensatedOnly?.checked && series.length > 1 ? series.slice(1) : series;
+    const isCompensatedOnly = () => Boolean(compensatedOnly?.checked && series.length > 1);
+    const visibleSeries = () => isCompensatedOnly() ? series.slice(1) : series;
     const extent = series.flatMap(line => line.points).reduce((range, p) => [Math.min(range[0], p[0]), Math.max(range[1], p[0])], [Infinity, -Infinity]);
     let xRange = [...extent];
     let yRange = tdr ? [30, 70] : [-80, 0];
+    let fittedTickStep = null;
     let dragStart = null;
     let width = Math.max(360, panel.getBoundingClientRect().width);
     let plotWidth = width - 110;
@@ -77,11 +79,12 @@
 
       }
       // Keep normal views at 10-unit intervals, with fewer labels for extreme fitted ranges.
-      const tickStep = 10 * Math.max(1, Math.ceil((yRange[1] - yRange[0]) / 1000));
+      const tickStep = fittedTickStep ?? 10 * Math.max(1, Math.ceil((yRange[1] - yRange[0]) / 1000));
+      const tickDecimals = Math.max(0, -Math.floor(Math.log10(tickStep)));
       for (let value = Math.ceil(yRange[0] / tickStep) * tickStep; value <= yRange[1]; value += tickStep) {
         const y = yPixel(value);
         add('line', {x1: 85, x2: width - 25, y1: y, y2: y, stroke: '#e2e7ed'});
-        add('text', {x: 75, y: y + 5, 'text-anchor': 'end', 'font-size': 14, fill: '#334155'}, value.toFixed(0));
+        add('text', {x: 75, y: y + 5, 'text-anchor': 'end', 'font-size': 14, fill: '#334155'}, value.toFixed(tickDecimals));
       }
       add('text', {x: (85 + width - 25) / 2, y: 333, 'text-anchor': 'middle', 'font-size': 15, fill: '#334155'}, tdr ? 'Time (ns)' : 'Frequency (GHz)');
       add('text', {x: 18, y: 155, transform: 'rotate(-90 18 155)', 'text-anchor': 'middle', 'font-size': 15, fill: '#334155'}, tdr ? 'Impedance (Ω)' : 'Reflection magnitude (dB)');
@@ -128,21 +131,32 @@
     svg.addEventListener('pointercancel', () => { dragStart = null; });
     panel.querySelector('[data-action="reset"]').addEventListener('click', () => {
       xRange = [...extent]; yRange = tdr ? [30, 70] : [-80, 0];
+      fittedTickStep = null;
       render();
     });
     function fitImpedance() {
       const values = visibleSeries().flatMap(line => line.points).filter(p => p[0] >= xRange[0] && p[0] <= xRange[1] && p[1] !== null && Number.isFinite(p[1])).map(p => p[1]);
       if (!values.length) return;
-      const [low, high] = values.reduce((range, value) => [Math.min(range[0], value), Math.max(range[1], value)], [50, 50]);
-      const padding = Math.max(1, (high - low) * 0.1);
-      yRange = [Math.floor((low - padding) / 10) * 10, Math.ceil((high + padding) / 10) * 10];
+      const compensated = isCompensatedOnly();
+      const initial = compensated ? values[0] : 50;
+      const [low, high] = values.reduce((range, value) => [Math.min(range[0], value), Math.max(range[1], value)], [initial, initial]);
+      const padding = Math.max(compensated ? 0.1 : 1, (high - low) * 0.1);
+      if (compensated) {
+        const targetStep = (high - low + 2 * padding) / 5;
+        const magnitude = 10 ** Math.floor(Math.log10(targetStep));
+        fittedTickStep = Math.ceil(targetStep / magnitude) * magnitude;
+      } else {
+        fittedTickStep = null;
+      }
+      const step = fittedTickStep ?? 10;
+      yRange = [Math.floor((low - padding) / step) * step, Math.ceil((high + padding) / step) * step];
     }
     panel.querySelector('[data-action="fit"]')?.addEventListener('click', () => {
       fitImpedance();
       render();
     });
     function updateTdrMode() {
-      const checked = compensatedOnly?.checked && series.length > 1;
+      const checked = isCompensatedOnly();
       const measuredLegend = panel.querySelector('[data-tdr-measured]');
       if (measuredLegend) measuredLegend.hidden = Boolean(checked);
       svg.setAttribute('aria-label', checked ?
