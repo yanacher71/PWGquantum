@@ -32,18 +32,21 @@
     const tdr = panel.dataset.kind === 'tdr';
     const series = tdr ? [{name: 'Measured TDR', color: '#1262b5', points: data.tdr}] :
       ['s11', 's22'].filter(key => data[key]).map(key => ({name: key.toUpperCase(), color: key === 's11' ? '#1262b5' : '#b45506', points: data[key]}));
+    const mode = panel.querySelector('[data-tdr-mode]');
+    const compensatedOnly = mode?.querySelector('input');
     if (tdr) {
       const compensated = slopeCompensate(data.tdr);
       const fitNote = panel.querySelector('[data-tdr-fit]');
       if (compensated) {
         series.push({name: 'Slope-compensated TDR', color: '#b45506', points: compensated.points});
+        if (mode) mode.hidden = false;
         fitNote.textContent = `Fitted slope ${compensated.slope.toFixed(3)} Ω/ns over ${compensated.fitStart.toFixed(3)}–${compensated.fitEnd.toFixed(3)} ns. Correction is anchored at the start of that interval and stays fixed when zooming.`;
       } else {
         fitNote.textContent = 'Slope compensation is unavailable because too few finite samples lie in the central 80% of this trace.';
       }
     }
-    const points = series.flatMap(line => line.points);
-    const extent = points.reduce((range, p) => [Math.min(range[0], p[0]), Math.max(range[1], p[0])], [Infinity, -Infinity]);
+    const visibleSeries = () => compensatedOnly?.checked && series.length > 1 ? series.slice(1) : series;
+    const extent = series.flatMap(line => line.points).reduce((range, p) => [Math.min(range[0], p[0]), Math.max(range[1], p[0])], [Infinity, -Infinity]);
     let xRange = [...extent];
     let yRange = tdr ? [30, 70] : [-80, 0];
     let dragStart = null;
@@ -85,7 +88,7 @@
       const graph = add('g', {'clip-path': `url(#${clipId})`});
       if (tdr) add('line', {x1: 85, x2: width - 25, y1: yPixel(50), y2: yPixel(50), stroke: '#64748b', 'stroke-dasharray': '6 5'}, undefined, graph);
       let outside = false;
-      for (const line of series) {
+      for (const line of visibleSeries()) {
         let path = ''; let pen = false;
         for (const [x, y] of line.points) {
           if (y === null || !Number.isFinite(y)) { pen = false; continue; }
@@ -108,7 +111,7 @@
     function valueAt(pixel) { return xRange[0] + (pixel - 85) / plotWidth * (xRange[1] - xRange[0]); }
     svg.addEventListener('pointermove', event => {
       const x = valueAt(position(event));
-      readout.textContent = series.map(line => {
+      readout.textContent = visibleSeries().map(line => {
         const nearest = line.points.reduce((best, p) => Math.abs(p[0] - x) < Math.abs(best[0] - x) ? p : best);
         return `${line.name} · ${nearest[0].toFixed(3)} ${tdr ? 'ns' : 'GHz'} · ${nearest[1] === null ? 'undefined' : nearest[1].toFixed(2)} ${tdr ? 'Ω' : 'dB'}`;
       }).join('   |   ');
@@ -118,21 +121,42 @@
       const end = position(event);
       if (dragStart !== null && Math.abs(end - dragStart) > 12) {
         xRange = [valueAt(Math.min(dragStart, end)), valueAt(Math.max(dragStart, end))];
+        if (compensatedOnly?.checked) fitImpedance();
         render();
       }
       dragStart = null;
     });
     svg.addEventListener('pointercancel', () => { dragStart = null; });
     panel.querySelector('[data-action="reset"]').addEventListener('click', () => {
-      xRange = [...extent]; yRange = tdr ? [30, 70] : [-80, 0]; render();
+      xRange = [...extent]; yRange = tdr ? [30, 70] : [-80, 0];
+      if (compensatedOnly?.checked) fitImpedance();
+      render();
     });
-    panel.querySelector('[data-action="fit"]')?.addEventListener('click', () => {
-      const values = points.filter(p => p[0] >= xRange[0] && p[0] <= xRange[1] && p[1] !== null && Number.isFinite(p[1])).map(p => p[1]);
+    function fitImpedance() {
+      const values = visibleSeries().flatMap(line => line.points).filter(p => p[0] >= xRange[0] && p[0] <= xRange[1] && p[1] !== null && Number.isFinite(p[1])).map(p => p[1]);
       if (!values.length) return;
       const [low, high] = values.reduce((range, value) => [Math.min(range[0], value), Math.max(range[1], value)], [50, 50]);
       const padding = Math.max(1, (high - low) * 0.1);
-      yRange = [Math.floor((low - padding) / 10) * 10, Math.ceil((high + padding) / 10) * 10]; render();
+      yRange = [Math.floor((low - padding) / 10) * 10, Math.ceil((high + padding) / 10) * 10];
+    }
+    panel.querySelector('[data-action="fit"]')?.addEventListener('click', () => {
+      fitImpedance();
+      render();
     });
+    function updateTdrMode() {
+      const checked = compensatedOnly?.checked && series.length > 1;
+      const measuredLegend = panel.querySelector('[data-tdr-measured]');
+      if (measuredLegend) measuredLegend.hidden = Boolean(checked);
+      svg.setAttribute('aria-label', checked ?
+        'Slope-compensated TDR impedance in ohms versus time in nanoseconds' :
+        'Measured and slope-compensated TDR impedance in ohms versus time in nanoseconds');
+      fitImpedance();
+    }
+    compensatedOnly?.addEventListener('change', () => {
+      updateTdrMode();
+      render();
+    });
+    if (compensatedOnly?.checked) updateTdrMode();
     if (typeof ResizeObserver !== 'undefined') {
       new ResizeObserver(() => {
         if (Math.abs(Math.max(360, panel.getBoundingClientRect().width) - width) > 1) render();
