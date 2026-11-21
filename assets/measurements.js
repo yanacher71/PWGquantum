@@ -121,7 +121,6 @@
       const end = position(event);
       if (dragStart !== null && Math.abs(end - dragStart) > 12) {
         xRange = [valueAt(Math.min(dragStart, end)), valueAt(Math.max(dragStart, end))];
-        if (compensatedOnly?.checked) fitImpedance();
         render();
       }
       dragStart = null;
@@ -129,7 +128,6 @@
     svg.addEventListener('pointercancel', () => { dragStart = null; });
     panel.querySelector('[data-action="reset"]').addEventListener('click', () => {
       xRange = [...extent]; yRange = tdr ? [30, 70] : [-80, 0];
-      if (compensatedOnly?.checked) fitImpedance();
       render();
     });
     function fitImpedance() {
@@ -150,7 +148,6 @@
       svg.setAttribute('aria-label', checked ?
         'Slope-compensated TDR impedance in ohms versus time in nanoseconds' :
         'Measured and slope-compensated TDR impedance in ohms versus time in nanoseconds');
-      fitImpedance();
     }
     compensatedOnly?.addEventListener('change', () => {
       updateTdrMode();
